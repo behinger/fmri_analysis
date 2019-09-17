@@ -1,0 +1,47 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+
+
+```
+```{r}
+
+data.path = 'experiment/MRI_data/sub-02/ses-01/beh'
+data <- list.files(data.path,pattern='*.tsv')%>%
+  map(~ read.table(file.path(data.path, .),header=TRUE)) %>%reduce(.f=rbind)
+data =   data%>%reduce(rbind(.))
+
+print(summarytools::dfSummary(data, valid.col = FALSE, graph.magnif = 0.75), method = "render")
+```
+```{r}
+head(data)
+minpositive = function(x) min(x[x > 0])
+
+catchOnset = data %>% filter(message=="catchOnset")
+for (ix in 1:(dim( catchOnset)[1]-1)){
+  btPress = data%>%filter(run>=catchOnset[ix,'run']&message=="buttonpress"& onset > catchOnset[ix,'onset'] & onset < catchOnset[ix+1,'onset'] )
+  if (dim(btPress)[1] == 0){
+     catchOnset[ix,'rt'] =NA
+  }else
+  catchOnset[ix,'rt'] = btPress$onset[1] - catchOnset[ix,'onset'] 
+}
+
+
+```
+```{r}
+ggplot(catchOnset,aes(x=condition,y=rt,color=factor(contrast)))+ggbeeswarm::geom_quasirandom(dodge.width=0.4,width=0.1)+ expand_limits(y = 0)
+
+
+catchOnset %>% group_by(contrast,condition) %>% summarise(accuracy = 1-mean(1*is.na(rt)),m = sum(is.na(rt)),total = length(rt)) # misses
+
+```
+```{r}
+
+```
+```{r}
+
+```

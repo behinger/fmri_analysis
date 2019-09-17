@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Matkab
 *.asv
 *.m~
@@ -105,3 +106,14 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+*.asv
+*.m~
+
+
+
+
+
+
+
+.Rproj.user
+>>>>>>> master_test
