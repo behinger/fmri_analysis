@@ -13,6 +13,7 @@ for SID = 1:length(subjectlist)
 
     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s_desc-occipitalcropMean_bold.nii',cfg.task)));
     
+
     p_corrMat   = fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-image.mat']);
     p_boundaries= fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface.mat']);
 

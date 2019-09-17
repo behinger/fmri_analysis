@@ -3,7 +3,7 @@ set -e
 # Align mean functional image to 3T nu anatomy (used for retinotopy) and calculate inverse XFM to be used to transform ROIs to mean functional space.
 _tmp=${subjectlist:='S10'}
 _tmp=${datadir:='SubjectData'}
-
+_tmp=${TASK:='sustained'}
 
 for SID in $subjectlist
 do
@@ -14,8 +14,6 @@ cd $datadir/derivates/preprocessing/$SID/ses-01/
 bids=$SID'_ses-01'
 echo $bids
 echo 'Aligning functional image to cropped anatomy...'
-
-TASK=sustained
 
 
 

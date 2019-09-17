@@ -22,9 +22,11 @@ do
 
 in='label/'$SID'_ses-01_desc-'$label'_space-ANAT_label.nii'
 out='label/'$SID'_ses-01_desc-'$label'_space-FUNCCROPPED_label.nii.gz'
+
 flirt -in $in -applyxfm -init $inToRef -out $out -paddingsize 0.0 -interp nearestneighbour  -ref $ref
 
 gunzip -f $out
+
 done
 
 

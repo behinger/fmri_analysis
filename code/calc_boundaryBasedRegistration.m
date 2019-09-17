@@ -36,9 +36,11 @@ for SID = 1:length(subjectlist)
     configuration.i_Boundaries = i_boundaries;
     configuration.o_CoregistrationMatrix = o_corrMat;
     configuration.o_Boundaries = o_boundaries;
+
 %     tvm_useBbregister XXX
     warning('I might want to switch to BBregister here!')
     tvm_boundaryBasedRegistration(configuration,realignmentConfiguration);
+
    
     % Write coregistration matrix to text file so we can use it with flirt
     % (didn't use this for anything, in the end - samlaw)

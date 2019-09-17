@@ -1,5 +1,8 @@
 % Align Freesurfer surface to functional data
 function calc_alignFreesurferToFunc(datadir,subjectlist)
+cfg = finputcheck(varargin, ...
+    { 'task','string',[],'sustained'
+    });
 
 
 
@@ -21,7 +24,8 @@ for SID = 1:length(subjectlist)
     %configuration.i_FreeSurferFolder = 'Freesurfer_retinotopy/'; % Switch
     %to this if using MPRAGE (no MP2RAGE)
     
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func','*task-seq*_desc-occipitalcropMean_bold.nii'));
+
+    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMean_bold.nii',cfg.task)));
     if length(p_meanrun) ~=1
         error('could not find mean functional')
     end

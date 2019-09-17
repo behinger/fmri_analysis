@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+echo "starting freesurfer"
 
 # Run freesurfer on T1
 module unload freesurfer
@@ -15,5 +17,6 @@ export SUBJECTS_DIR=$datadir/derivates/freesurfer/$SID/
 mkdir -p $SUBJECTS_DIR
 
 recon-all -i $T1Path -subjid 'ses-01' -cw256 -all -parallel -hires
+
 #recon-all -make all  -subjid 'ses-01' -cw256 -all -parallel -hires
 

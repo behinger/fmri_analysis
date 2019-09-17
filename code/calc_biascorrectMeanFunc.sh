@@ -3,7 +3,7 @@ set -e
 # Align mean functional image to 3T nu anatomy (used for retinotopy) and calculate inverse XFM to be used to transform ROIs to mean functional space.
 _tmp=${subjectlist:='S10'}
 _tmp=${datadir:='SubjectData'}
-
+_tmp=${TASK:='sustained'}
 
 for SID in $subjectlist
 do
@@ -22,7 +22,7 @@ echo 'Fast correcting functional image...'
 #
 # This is run to get the bias correct image (I imagine)
                                                                                                                   
-TASK='sequential'
+
     
 fast -t 2 -n 2 -H 0.1 -I 4 -l 20.0 --nopve -B -o './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold.nii' './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMean_bold.nii' 
 mv './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold_restore.nii.gz' './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold.nii.gz'
