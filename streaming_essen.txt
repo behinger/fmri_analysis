@@ -1,3 +1,0 @@
-- Test Streaming Essen
-
-ssh -L 1234:mentat004:22 -p 5000 benehi@ssh.dccn.nl
