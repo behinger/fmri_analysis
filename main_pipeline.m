@@ -1,36 +1,34 @@
 
 try
-    be_setupfmri % init paths and stuff
+    run('code/setup_paths') % init paths and stuff
 end
 
 
 cfg = [];
 cfg.autoRun = 0;
-cfg.project = 'sequence'
-cfg.rootdir= sprintf('/home/predatt/benehi/projects/fmri_%s/',cfg.project);
-cfg.datadir = fullfile(sprintf('/project/3018028.04/benehi/%s/',cfg.project),'data','pilot','bids');
+cfg.project = 'wm';
+cfg.bidsdir = fullfile('/','project','3018012.20','data','pilot','bids');
+cfg.scriptdir = fullfile(pwd,'code');
 
-cfg.scriptdir = fullfile(cfg.rootdir,'code');
-cfg.loopeval = cfg.loopfun(cfg); % export variables and dirs
-addpath(cfg.scriptdir)
-
-
-cfg.subjectlist = {'sub-04'};
+cfg.subjectlist = {'sub-91'};
 
 % Functions for GRID/cluster evluation
-cfg.loopfun = @(cfg)['cd ' cfg.scriptdir ';export subjectlist="'  strjoin(cfg.subjectlist),'"; export datadir="' cfg.datadir '";'];
-cfg.gridpipe_long_4cpu = sprintf('| qsub -l "nodes=1:ppn=4,walltime=22:00:00,mem=12gb" -o %s',fullfile(cfg.datadir,'logfiles'));
-cfg.gridpipe_long = sprintf('| qsub -l "nodes=1:walltime=22:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.datadir,'logfiles'));
-cfg.gridpipe_short = sprintf('| qsub -l "nodes=1:walltime=5:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.datadir,'logfiles'));
+cfg.loopfun = @(cfg)['cd ' cfg.scriptdir ';export subjectlist="'  strjoin(cfg.subjectlist),'"; export bidsdir="' cfg.bidsdir '";'];
+cfg.gridpipe_long_4cpu = sprintf('| qsub -l "nodes=1:ppn=4,walltime=22:00:00,mem=12gb" -o %s',fullfile(cfg.bidsdir,'logfiles'));
+cfg.gridpipe_long = sprintf('| qsub -l "nodes=1:walltime=22:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.bidsdir,'logfiles'));
+cfg.gridpipe_short = sprintf('| qsub -l "nodes=1:walltime=5:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.bidsdir,'logfiles'));
+
+
+cfg.loopeval = cfg.loopfun(cfg); % export variables and dirs
 
 
 if ~cfg.autoRun
-error % stop the script here to not autorun :)
+    error('stopped on purpose') % stop the script here to not autorun :)
 end
 %%
 
 % In case of 7T reconstruct subjectlist
-calc_CAIPI7tReconstruction(fullfile(cfg.datadir,'../','recon'),cfg.subjectlist) % run on cluster, returns
+calc_CAIPI7tReconstruction(fullfile(cfg.bidsdir,'../','recon'),cfg.subjectlist) % run on cluster, returns
 
 %%
 
@@ -58,7 +56,7 @@ if strcmp(cfg.phase,'preprocessing')
             case 1
                 % simple modification to get a (betteR) T1 from the mp2rage anatomical scan
                 % This might not be necessary in the future (new mp2rage) => Todo Auto-Copy the anatomical file to the derivates folder
-                calc_modifyMP2RAGE(cfg.datadir,cfg.subjectlist)
+                calc_modifyMP2RAGE(cfg.bidsdir,cfg.subjectlist)
             case 2
                 % Segment Anatomical
                 % recon-all to segment
@@ -73,7 +71,7 @@ if strcmp(cfg.phase,'preprocessing')
                 % crop the occipital cortex
                 % input needed how to best save coordinates for croping to
                 
-                f_cropmark = fullfile(cfg.datadir,'derivates','preprocessing','cropmarks_occipital.mat');
+                f_cropmark = fullfile(cfg.bidsdir,'derivates','preprocessing','cropmarks_occipital.mat');
                 
                 for SID = cfg.subjectlist
                     if exist(f_cropmark,'file')
@@ -87,10 +85,10 @@ if strcmp(cfg.phase,'preprocessing')
                     if ~isempty(ix)
                         t_sub = crop(ix,:);
                     else
-                        spm_image('display',fullfile(cfg.datadir,'derivates','preprocessing',SID{1}, 'ses-01','anat',[SID{1} '_ses-01_desc-anatomical_T1w.nii']))
+                        spm_image('display',fullfile(cfg.bidsdir,'derivates','preprocessing',SID{1}, 'ses-01','anat',[SID{1} '_ses-01_desc-anatomical_T1w.nii']))
                         tmp_a = input('Subject not found, adding it to table. Anat {X:X, Y:Y, Z:Z}:');
                         
-                        spm_image('display',fullfile(cfg.datadir,SID{1}, 'ses-01','func',[SID{1} '_ses-01_task-sequential_run-1_echo-1_bold.nii']))
+                        spm_image('display',fullfile(cfg.bidsdir,SID{1}, 'ses-01','func',[SID{1} '_ses-01_task-sequential_run-1_echo-1_bold.nii']))
                         
                         tmp_f = input('Subject not found, adding it to table. Func {X:X, Y:Y, Z:Z}:');
                         t_sub = table(SID(1),tmp_a,tmp_f,'VariableNames',{'SID','anat','func'});
@@ -99,26 +97,26 @@ if strcmp(cfg.phase,'preprocessing')
                         crop = [crop; t_sub];
                         save(f_cropmark,'crop')
                     end
-                    calc_cropOccipital(cfg.datadir,SID{1},t_sub)
+                    calc_cropOccipital(cfg.bidsdir,SID{1},t_sub)
                     
                 end
                 
             case 4
                 % SPM linear realign of functional scans to mean functional
                 % scan. Output mean nifti
-                calc_realignFunctionals(cfg.datadir,cfg.subjectlist)
+                calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist)
             case 5
                 % Rough alignment of mp2rage anatomical to mean functional
-                calc_alignFreesurferToFunc(cfg.datadir,cfg.subjectlist)
+                calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist)
                 
             case 'catch22'
                 
-                p_meanrun= dir(fullfile(cfg.datadir,'derivates','preprocessing','sub-01','ses-01','func','*task-adaptation_desc-occipitalcropMean_bold.nii'));
-%                 rfiles= dir(fullfile(cfg.datadir,'derivates','preprocessing','sub-01','ses-01','func','*Realign*.nii'));
-                rp= dir(fullfile(cfg.datadir,'derivates','preprocessing','sub-01','ses-01','coreg','*_motion.txt'));
+                p_meanrun= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','func','*task-adaptation_desc-occipitalcropMean_bold.nii'));
+%                 rfiles= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','func','*Realign*.nii'));
+                rp= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','coreg','*_motion.txt'));
                 genpath =@(p)cellfun(@(x,y)fullfile(x,y),{p.folder},{p.name},'UniformOutput',0);
                
-                memolab_batch_qa('dataDir',fullfile(cfg.datadir,'derivates','preprocessing'),...
+                memolab_batch_qa('dataDir',fullfile(cfg.bidsdir,'derivates','preprocessing'),...
                     'QAdir',fullfile('qualcheck'),...
                     'subjects',{'sub-01'},'session','ses-01',...
                     'runs',{'task-adaptation_run-2_desc-occipitalcrop_',...
@@ -139,30 +137,30 @@ if strcmp(cfg.phase,'preprocessing')
                 [~,out] = system([cfg.loopeval './calc_biascorrectMeanFunc.sh'],'-echo');
 
                 % Boundary / Gradient based Surface / Volume alignment
-                calc_boundaryBasedRegistration(cfg.datadir,cfg.subjectlist,'task','sequential')
+                calc_boundaryBasedRegistration(cfg.bidsdir,cfg.subjectlist,'task','sequential')
             
            
             case 7
                 % TVM recursive Boundary Registration.
                 % TODO: The clustereval should be pulled out to this script
-                calc_cluster_recursiveBoundaryRegistration(cfg.datadir,cfg.subjectlist,'task','sequential')
+                calc_cluster_recursiveBoundaryRegistration(cfg.bidsdir,cfg.subjectlist,'task','sequential')
             
             case 8
-                calc_backupFreesurfer(cfg.datadir,cfg.subjectlist)
-                calc_overwriteFreesurferBoundaries(cfg.datadir,cfg.subjectlist)
+                calc_backupFreesurfer(cfg.bidsdir,cfg.subjectlist)
+                calc_overwriteFreesurferBoundaries(cfg.bidsdir,cfg.subjectlist)
             case 9
 
-                    vis_surfaceCoregistration(cfg.datadir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','sequential')
+                    vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','sequential')
                 
-                vis_surfaceCoregistration(cfg.datadir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_mode-surface','axis','z','task','sequential')
-                vis_surfaceCoregistration(cfg.datadir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface','axis','z','task','sequential')
-                vis_surfaceCoregistration(cfg.datadir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','sequential')
-                %                 Step9_visualiseRecursiveRegistration(cfg.datadir,cfg.subjectlist,'slicelist',23,'boundary_identifier','Anat2FuncBoundaries_recurs_sam','functional_identifier','meanWM_run1_sam.nii')
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_mode-surface','axis','z','task','sequential')
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface','axis','z','task','sequential')
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','sequential')
+                %                 Step9_visualiseRecursiveRegistration(cfg.bidsdir,cfg.subjectlist,'slicelist',23,'boundary_identifier','Anat2FuncBoundaries_recurs_sam','functional_identifier','meanWM_run1_sam.nii')
                 
                 
-            p_meanrun= dir(fullfile(cfg.datadir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii','sustained')));
-            boundaries = dir(fullfile(cfg.datadir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','coreg','*_ses-01_from-ANATCROPPED_to-FUNCCROPPED_desc-BBR_mode-surface.mat'))
-            config = struct('i_SubjectDirectory',fullfile(cfg.datadir,'derivates'),...
+            p_meanrun= dir(fullfile(cfg.bidsdir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii','sustained')));
+            boundaries = dir(fullfile(cfg.bidsdir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','coreg','*_ses-01_from-ANATCROPPED_to-FUNCCROPPED_desc-BBR_mode-surface.mat'))
+            config = struct('i_SubjectDirectory',fullfile(cfg.bidsdir,'derivates'),...
                     'i_ReferenceVolume',fullfile('preprocessing',cfg.subjectlist{1},'ses-01','func',p_meanrun.name),...
                     'i_Boundaries',fullfile('preprocessing',cfg.subjectlist{1},'ses-01','coreg',boundaries.name),...
                     'o_RegistrationMovie','test_bbr.mp4')
@@ -171,11 +169,11 @@ if strcmp(cfg.phase,'preprocessing')
 %                 
 %                 
 %                 
-%                  p_meanrun= dir(fullfile(cfg.datadir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii','sustained')));
-%                 anat= dir(fullfile(cfg.datadir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','anat','sub*_ses-01_desc-anatomical_T1w.nii'))
-%                 coreg= dir(fullfile(cfg.datadir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','coreg','*_ses-01_from-ANAT_to-FUNCCROPPED_mode-image.mat'))
+%                  p_meanrun= dir(fullfile(cfg.bidsdir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii','sustained')));
+%                 anat= dir(fullfile(cfg.bidsdir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','anat','sub*_ses-01_desc-anatomical_T1w.nii'))
+%                 coreg= dir(fullfile(cfg.bidsdir,'derivates','preprocessing',cfg.subjectlist{1},'ses-01','coreg','*_ses-01_from-ANAT_to-FUNCCROPPED_mode-image.mat'))
 %                 [~,outname,~] = fileparts(coreg.name);
-%                 config = struct('i_SubjectDirectory',fullfile(cfg.datadir,'derivates'),...
+%                 config = struct('i_SubjectDirectory',fullfile(cfg.bidsdir,'derivates'),...
 %                     'i_MoveVolumes',     fullfile('preprocessing',cfg.subjectlist{1},'ses-01','label','sub-01_ses-01_desc-varealabel_space-ANAT_label.nii'),...
 %                     'i_ReferenceVolume',          fullfile('preprocessing',cfg.subjectlist{1},'ses-01','anat',anat.name),...
 %                     'i_CoregistrationMatrix',fullfile('preprocessing',cfg.subjectlist{1},'ses-01','coreg',coreg.name),...
@@ -216,7 +214,7 @@ if strcmp(cfg.phase,'GLM')
         fprintf('Running Step %i\n',step)
         switch step
             case 0 
-                StepX_generateFSLEventfile(cfg.datadir,cfg.subjectlist,'condition','adaptation')
+                StepX_generateFSLEventfile(cfg.bidsdir,cfg.subjectlist,'condition','adaptation')
             case 1
                 for SID =cfg.subjectlist
                     for run = [1:8]
@@ -228,7 +226,7 @@ if strcmp(cfg.phase,'GLM')
             case 4
                 % move the preprocessed trial files to
                 % preprocessing/././func
-                StepX_moveFeatToFunc(cfg.datadir,cfg.subjectlist)
+                StepX_moveFeatToFunc(cfg.bidsdir,cfg.subjectlist)
             case 5
                 % OPTIONAL
                 % run FEAT over the experimental runs
@@ -241,7 +239,7 @@ if strcmp(cfg.phase,'GLM')
             case 5
                 
             case 6
-%                 Step6_CreateLocaliserFunctionalFiles(cfg.datadir,cfg.subjectlist)
+%                 Step6_CreateLocaliserFunctionalFiles(cfg.bidsdir,cfg.subjectlist)
             case 7
                 % copy the FEAT functional files to a new folder
                 % SubjectData/SID/FunctionalFiles
@@ -263,23 +261,23 @@ if strcmp(cfg.phase,'laminar')
                 
                 % No localizer used for 
                 
-                calc_spm2ndLevel(cfg.datadir,{SID},'task','sequential','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
+                calc_spm2ndLevel(cfg.bidsdir,{SID},'task','sequential','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
                 
                 
-                calc_localizerWeightedFunc(cfg.datadir,cfg.subjectlist,'zscore',1,'weight',1,'software2nd','spm')
+                calc_localizerWeightedFunc(cfg.bidsdir,cfg.subjectlist,'zscore',1,'weight',1,'software2nd','spm')
 
 
             case 0
                 % I put it here, because its output goes into the tvm_layer
                 % folder and is not preprocessing anymore imho
-                calc_createROI(cfg.datadir,cfg.subjectlist,'topn',500)
+                calc_createROI(cfg.bidsdir,cfg.subjectlist,'topn',500)
 
             case 1
-                layer_tvmPipeline(cfg.datadir,cfg.subjectlist)
+                layer_tvmPipeline(cfg.bidsdir,cfg.subjectlist)
             case 2
-                layer_createSpatialglmX(cfg.datadir,cfg.subjectlist)
+                layer_createSpatialglmX(cfg.bidsdir,cfg.subjectlist)
             case 3
-                layer_timecourse(cfg.datadir,cfg.subjectlist)
+                layer_timecourse(cfg.bidsdir,cfg.subjectlist)
           
         end
         fprintf('Finished Step %i \n',step)
