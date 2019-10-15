@@ -10,9 +10,8 @@ function calc_cropOccipital(datadir,SID,t_sub)
 
 
 % Nifti files to process
-niftis = [dir(fullfile(datadir,SID,'ses-01','func','*.nii'))
-    
-          dir(fullfile(datadir,'derivates','preprocessing',SID,'ses-01','anat','*anatomical_T1w.nii'))];
+niftis = [dir(fullfile(datadir,SID,'ses-01','func','*_bold.nii'))
+          dir(fullfile(datadir,SID,'ses-01','anat','*_T1w.nii'))];
 
 
 for curNifti = 1:length(niftis)
