@@ -2,14 +2,14 @@
 set -e
 
 _tmp=${subjectlist:='S10'}
-_tmp=${datadir:='SubjectData'}
+_tmp=${bidsdir:='SubjectData'}
 
 
 
 
 for SID in $subjectlist
 do
-cd $datadir'/derivates/preprocessing/'$SID'/ses-01/'
+cd $bidsdir'/derivates/preprocessing/'$SID'/ses-01/'
 echo 'Moving Visual Labels to Funccropped'
 
 
