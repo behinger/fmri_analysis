@@ -62,7 +62,7 @@ if strcmp(cfg.phase,'preprocessing')
                 % recon-all to segment
                 for SID =cfg.subjectlist
                     %locally
-                    %[~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./Step5_RunFreesurfer.sh'],'-echo');
+                    %[~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh'],'-echo');
                     % runs parrallel with freesurfer 6
                     [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh''' cfg.gridpipe_long_4cpu],'-echo');
                     
@@ -85,11 +85,13 @@ if strcmp(cfg.phase,'preprocessing')
                     if ~isempty(ix)
                         t_sub = crop(ix,:);
                     else
-                        spm_image('display',fullfile(cfg.bidsdir,'derivates','preprocessing',SID{1}, 'ses-01','anat',[SID{1} '_ses-01_desc-anatomical_T1w.nii']))
+                        d = dir(fullfile(cfg.bidsdir,SID{1}, 'ses-01','anat',[SID{1} '_ses-01_*_T1w.nii']));
+                        spm_image('display',fullfile(d.folder,d.name))
                         tmp_a = input('Subject not found, adding it to table. Anat {X:X, Y:Y, Z:Z}:');
                         
-                        spm_image('display',fullfile(cfg.bidsdir,SID{1}, 'ses-01','func',[SID{1} '_ses-01_task-sequential_run-1_echo-1_bold.nii']))
-                        
+                        d = dir(fullfile(cfg.bidsdir,SID{1}, 'ses-01','func',[SID{1} '_ses-01_*_bold.nii']));
+                        spm_image('display',fullfile(d(1).folder,d(1).name))
+                     
                         tmp_f = input('Subject not found, adding it to table. Func {X:X, Y:Y, Z:Z}:');
                         t_sub = table(SID(1),tmp_a,tmp_f,'VariableNames',{'SID','anat','func'});
                         
@@ -108,30 +110,6 @@ if strcmp(cfg.phase,'preprocessing')
             case 5
                 % Rough alignment of mp2rage anatomical to mean functional
                 calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist)
-                
-            case 'catch22'
-                
-                p_meanrun= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','func','*task-adaptation_desc-occipitalcropMean_bold.nii'));
-%                 rfiles= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','func','*Realign*.nii'));
-                rp= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','coreg','*_motion.txt'));
-                genpath =@(p)cellfun(@(x,y)fullfile(x,y),{p.folder},{p.name},'UniformOutput',0);
-               
-                memolab_batch_qa('dataDir',fullfile(cfg.bidsdir,'derivates','preprocessing'),...
-                    'QAdir',fullfile('qualcheck'),...
-                    'subjects',{'sub-01'},'session','ses-01',...
-                    'runs',{'task-adaptation_run-2_desc-occipitalcrop_',...
-                    'task-adaptation_run-3_desc-occipitalcrop_',...
-                    'task-adaptation_run-4_desc-occipitalcrop_',...
-                    'task-localizer_run-1_desc-occipitalcrop_',...
-                    'task-retinotopy_run-1_desc-occipitalcrop_'},...
-                    'realign',struct('meanfunc',repmat({fullfile(p_meanrun.folder,p_meanrun.name)},1,5),...
-                    'rfiles',{'task-adaptation_run-2_desc-occipitalcropRealign',...
-                    'task-adaptation_run-3_desc-occipitalcropRealign',...
-                    'task-adaptation_run-4_desc-occipitalcropRealign',...
-                    'task-localizer_run-1_desc-occipitalcropRealign',...
-                    'task-retinotopy_run-1_desc-occipitalcropRealign'},...
-                    'rp',genpath(rp)))
-                
                 
             case 6
                 [~,out] = system([cfg.loopeval './calc_biascorrectMeanFunc.sh'],'-echo');
