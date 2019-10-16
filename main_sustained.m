@@ -125,6 +125,8 @@ if strcmp(cfg.phase,'preprocessing')
 end
 
 %% Phase Univariate Modeling
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'})
+
 % I replaced this with SPM, as I like their coding way much better.
 % see the sequence_pilot_analysis_spmbatch file
 
