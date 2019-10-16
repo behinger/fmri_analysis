@@ -14,9 +14,9 @@ cfg.subjectlist = {'sub-91'};
 
 % Functions for GRID/cluster evluation
 cfg.loopfun = @(cfg)['cd ' cfg.scriptdir ';export subjectlist="'  strjoin(cfg.subjectlist),'"; export bidsdir="' cfg.bidsdir '";'];
-cfg.gridpipe_long_4cpu = sprintf('| qsub -l "nodes=1:ppn=4,walltime=22:00:00,mem=12gb" -o %s',fullfile(cfg.bidsdir,'logfiles/'));
-cfg.gridpipe_long = sprintf('| qsub -l "nodes=1:walltime=22:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.bidsdir,'logfiles/'));
-cfg.gridpipe_short = sprintf('| qsub -l "nodes=1:walltime=5:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.bidsdir,'logfiles/'));
+cfg.gridpipe_long_4cpu = sprintf('| qsub -l "nodes=1:ppn=4,walltime=22:00:00,mem=12gb" -o %s',fullfile(cfg.bidsdir,'logfiles'));
+cfg.gridpipe_long = sprintf('| qsub -l "nodes=1:walltime=22:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.bidsdir,'logfiles'));
+cfg.gridpipe_short = sprintf('| qsub -l "nodes=1:walltime=5:00:00,mem=4GB,procs=1" -o %s',fullfile(cfg.bidsdir,'logfiles'));
 
 
 cfg.loopeval = cfg.loopfun(cfg); % export variables and dirs
@@ -28,13 +28,13 @@ end
 %%
 
 % In case of 7T reconstruct subjectlist
-% calc_CAIPI7tReconstruction(fullfile(cfg.bidsdir,'../','recon'),cfg.subjectlist) % run on cluster, returns
+calc_CAIPI7tReconstruction(fullfile(cfg.bidsdir,'../','recon'),cfg.subjectlist) % run on cluster, returns
 
 %%
 
 cfg.phase = 'preprocessing';
 cfg.step = [1:2]; % Copy Anaotmical + run freesurfer => Cluster
-cfg.step = [4] % realignFunctions => TODO:cluster
+cfg.step = [4] % realignFunctions => cluster
 cfg.step = [3] % Manually Crop cortex
 cfg.step = [5:7] % after Freesurfer is finished (step 2), calculate GM/WM boundaries => Partially on cluster
 
@@ -44,23 +44,28 @@ cfg.step = [8 10 11]; % align anatomical with functional for V1 ROI, calculate R
 cfg.step = 9; %visually check corregistration of boundaries
 %XXX Todo: Visually check realignment using "theplot"
 
-cfg.step = [2 4]
+
 
 %% Phase 1
 if strcmp(cfg.phase,'preprocessing')
     % path modifications
-   %% 
+    
     for step =cfg.step
       
         switch step
+            case 1
+                % simple modification to get a (betteR) T1 from the mp2rage anatomical scan
+                % This might not be necessary in the future (new mp2rage) => Todo Auto-Copy the anatomical file to the derivates folder
+                calc_modifyMP2RAGE(cfg.bidsdir,cfg.subjectlist)
             case 2
                 % Segment Anatomical
                 % recon-all to segment
                 for SID =cfg.subjectlist
                     %locally
-                    [~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh'],'-echo');
+                    %[~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./Step5_RunFreesurfer.sh'],'-echo');
                     % runs parrallel with freesurfer 6
-%                     [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh''' cfg.gridpipe_long_4cpu],'-echo'); 
+                    [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh''' cfg.gridpipe_long_4cpu],'-echo');
+                    
                 end
             case 3
                 % crop the occipital cortex
@@ -80,21 +85,16 @@ if strcmp(cfg.phase,'preprocessing')
                     if ~isempty(ix)
                         t_sub = crop(ix,:);
                     else
-                        d = dir(fullfile(cfg.bidsdir,SID{1}, 'ses-01','anat',[SID{1} '_ses-01_*_T1w.nii']));
-                        spm_image('display',fullfile(d.folder,d.name))
+                        spm_image('display',fullfile(cfg.bidsdir,'derivates','preprocessing',SID{1}, 'ses-01','anat',[SID{1} '_ses-01_desc-anatomical_T1w.nii']))
                         tmp_a = input('Subject not found, adding it to table. Anat {X:X, Y:Y, Z:Z}:');
                         
-                        d = dir(fullfile(cfg.bidsdir,SID{1}, 'ses-01','func',[SID{1} '_ses-01_*_bold.nii']));
-                        spm_image('display',fullfile(d(1).folder,d(1).name))
+                        spm_image('display',fullfile(cfg.bidsdir,SID{1}, 'ses-01','func',[SID{1} '_ses-01_task-sequential_run-1_echo-1_bold.nii']))
                         
                         tmp_f = input('Subject not found, adding it to table. Func {X:X, Y:Y, Z:Z}:');
                         t_sub = table(SID(1),tmp_a,tmp_f,'VariableNames',{'SID','anat','func'});
                         
                         % concatenate to already loaded and save changes
                         crop = [crop; t_sub];
-                        if ~exist(fileparts(f_cropmark),'dir')
-                            mkdir(fileparts(f_cropmark))
-                        end
                         save(f_cropmark,'crop')
                     end
                     calc_cropOccipital(cfg.bidsdir,SID{1},t_sub)
@@ -108,7 +108,30 @@ if strcmp(cfg.phase,'preprocessing')
             case 5
                 % Rough alignment of mp2rage anatomical to mean functional
                 calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist)
-                               
+                
+            case 'catch22'
+                
+                p_meanrun= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','func','*task-adaptation_desc-occipitalcropMean_bold.nii'));
+%                 rfiles= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','func','*Realign*.nii'));
+                rp= dir(fullfile(cfg.bidsdir,'derivates','preprocessing','sub-01','ses-01','coreg','*_motion.txt'));
+                genpath =@(p)cellfun(@(x,y)fullfile(x,y),{p.folder},{p.name},'UniformOutput',0);
+               
+                memolab_batch_qa('dataDir',fullfile(cfg.bidsdir,'derivates','preprocessing'),...
+                    'QAdir',fullfile('qualcheck'),...
+                    'subjects',{'sub-01'},'session','ses-01',...
+                    'runs',{'task-adaptation_run-2_desc-occipitalcrop_',...
+                    'task-adaptation_run-3_desc-occipitalcrop_',...
+                    'task-adaptation_run-4_desc-occipitalcrop_',...
+                    'task-localizer_run-1_desc-occipitalcrop_',...
+                    'task-retinotopy_run-1_desc-occipitalcrop_'},...
+                    'realign',struct('meanfunc',repmat({fullfile(p_meanrun.folder,p_meanrun.name)},1,5),...
+                    'rfiles',{'task-adaptation_run-2_desc-occipitalcropRealign',...
+                    'task-adaptation_run-3_desc-occipitalcropRealign',...
+                    'task-adaptation_run-4_desc-occipitalcropRealign',...
+                    'task-localizer_run-1_desc-occipitalcropRealign',...
+                    'task-retinotopy_run-1_desc-occipitalcropRealign'},...
+                    'rp',genpath(rp)))
+                
                 
             case 6
                 [~,out] = system([cfg.loopeval './calc_biascorrectMeanFunc.sh'],'-echo');
@@ -187,7 +210,7 @@ end
 %% Phase Univariate Modeling
 if strcmp(cfg.phase,'GLM')
     % This is for Univariate modeling with FEAT. I now use SPM because I like the interface better
-    for step =cf% calc_CAIPI7tReconstruction(fullfile(cfg.bidsdir,'../','recon'),cfg.subjectlist) % run on cluster, returnsg.step
+    for step =cfg.step
         fprintf('Running Step %i\n',step)
         switch step
             case 0 
