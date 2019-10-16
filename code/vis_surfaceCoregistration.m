@@ -1,108 +1,36 @@
-% Visualise results of recursive boundary registration
+function vis_surfaceCoregistration(bidsdir,subjectlist)
+% plots various surfaceCoregistration things. Also maybe in the future add
+% a movie
 
-% Subjects to process
-function vis_surfaceCoregistration(datadir,SID,varargin)
-cfg = finputcheck(varargin, ...
-    { 'slicelist'         'integer'   []       []; ...
-    'axis',             'string', {'x','y','z'}, 'z';...
-    'boundary_identifier'       'string'     []    'Anat2FuncBoundaries_recurs' ; ...
-    'functional_identifier'     'string'     []    '%s_ses-01_task-%s_desc-occipitalcropMeanBias_bold.nii';
-    'task','string',[],'sustained'
-    });
-if ischar(cfg)
-    error(cfg)
-end
+plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','sequential')
 
-cfg.functional_identifier = sprintf(cfg.functional_identifier,SID,cfg.task);
-cfg.boundary_identifier = sprintf(cfg.boundary_identifier,SID);
+plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_mode-surface','axis','z','task','sequential')
+plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface','axis','z','task','sequential')
+plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','sequential')
+%                 Step9_visualiseRecursiveRegistration(bidsdir,subjectlist,'slicelist',23,'boundary_identifier','Anat2FuncBoundaries_recurs_sam','functional_identifier','meanWM_run1_sam.nii')
 
-configuration = [];
-subjectDirectory = fullfile(datadir, SID);
-subjectDirectory = fullfile(datadir,'derivates','preprocessing',SID,'ses-01');
-functional = spm_vol(fullfile(subjectDirectory, 'func',cfg.functional_identifier));
-configuration.i_Volume = spm_read_vols(functional);
-%dimension = 1;
-configuration.i_Axis = cfg.axis;
-
-if isempty(cfg.slicelist)
-    
-    cfg.slicelist = unique(round(linspace(1,functional.dim(cfg.axis=='xyz'),24)));
-end
-
-load(fullfile(subjectDirectory, 'coreg',[cfg.boundary_identifier '.mat']), 'wSurface', 'pSurface', 'faceData');
-configuration.i_Vertices{1} = wSurface;
-configuration.i_Vertices{2} = pSurface;
-configuration.i_Faces{1} = faceData;
-configuration.i_Faces{2} = faceData;
-
-%for curSlice = 1:3:30
-for curSlice = 1:length(cfg.slicelist)
-    if curSlice == 1
-        figure
-    end
-    if length(cfg.slicelist)>1
-        switch cfg.axis
-            case 'x'
-                m_row = ceil(sqrt(length(cfg.slicelist)));
-                n_col = ceil(sqrt(length(cfg.slicelist)));
-            case 'y'
-                n_col = 3;
-                m_row = ceil(length(cfg.slicelist)/n_col);
-                
-            case 'z'
-                m_row = 3;
-                n_col = ceil(length(cfg.slicelist)/m_row);
-        end
-        subplot_er(m_row,n_col,curSlice);
-        
-    end
-    
-    
-    configuration.i_Slice = cfg.slicelist(curSlice);
-    
-  
-    tvm_showObjectContourOnSlice(configuration);
-    
-    
-
-%     text(0.01,0.01,sprintf('Slice %i \nBound: %s\nFunctional: %s',cfg.slicelist(curSlice),cfg.boundary_identifier,cfg.functional_identifier),'VerticalAlignment','bottom','units','normalized','Fontsize',7,'Interpreter','none','Color','White')
-end
-
-splt = strsplit(cfg.boundary_identifier,'_');
-
-
-% '%s_ses-01_from-ANATCROPPED_to-FUNCCROPPED_mode-surface','
-splt(3:4) = [];
-ix = strfind(splt,'desc');
-ix = cellfun(@(x)isempty(ix),ix);
-if any(ix)
-    splt{ix} = [splt{ix} '%s%s'];
-else
-    splt(end+1) = splt(end);
-    splt{end-1} = 'desc-%s%s';
-end
-
-if ~exist(fullfile(subjectDirectory,'surface'),'dir')
-    mkdir(fullfile(subjectDirectory,'surface'))
-end
-
-for hemisphere = {'left','right'}
-    for surface = {'white','gray'}
-        fName= fullfile(subjectDirectory,'surface',sprintf(strjoin(splt,'_'),surface{1},hemisphere{1}));
-        
-        switch surface{1}
-            case 'white'
-                surf = wSurface;
-            case 'gray'
-                surf = pSurface;
-        end
-        tvm_exportObjFile(surf{strcmp(hemisphere{1},'right')+1}, faceData{strcmp(hemisphere{1},'right')+1}, fName)
-
-
-    end
-end
-
-
-clear configuration;
-
-
+% 
+% p_meanrun= dir(fullfile(bidsdir,'derivates','preprocessing',subjectlist{1},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii','sustained')));
+% boundaries = dir(fullfile(bidsdir,'derivates','preprocessing',subjectlist{1},'ses-01','coreg','*_ses-01_from-ANATCROPPED_to-FUNCCROPPED_desc-BBR_mode-surface.mat'))
+% config = struct('i_SubjectDirectory',fullfile(bidsdir,'derivates'),...
+%     'i_ReferenceVolume',fullfile('preprocessing',subjectlist{1},'ses-01','func',p_meanrun.name),...
+%     'i_Boundaries',fullfile('preprocessing',subjectlist{1},'ses-01','coreg',boundaries.name),...
+%     'o_RegistrationMovie','test_bbr.mp4')
+% config.i_Boundaries = {config.i_Boundaries}
+% tvm_makeRegistrationMovieWithMoreBoundaries(config)
+%
+%
+%
+%                  p_meanrun= dir(fullfile(bidsdir,'derivates','preprocessing',subjectlist{1},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii','sustained')));
+%                 anat= dir(fullfile(bidsdir,'derivates','preprocessing',subjectlist{1},'ses-01','anat','sub*_ses-01_desc-anatomical_T1w.nii'))
+%                 coreg= dir(fullfile(bidsdir,'derivates','preprocessing',subjectlist{1},'ses-01','coreg','*_ses-01_from-ANAT_to-FUNCCROPPED_mode-image.mat'))
+%                 [~,outname,~] = fileparts(coreg.name);
+%                 config = struct('i_SubjectDirectory',fullfile(bidsdir,'derivates'),...
+%                     'i_MoveVolumes',     fullfile('preprocessing',subjectlist{1},'ses-01','label','sub-01_ses-01_desc-varealabel_space-ANAT_label.nii'),...
+%                     'i_ReferenceVolume',          fullfile('preprocessing',subjectlist{1},'ses-01','anat',anat.name),...
+%                     'i_CoregistrationMatrix',fullfile('preprocessing',subjectlist{1},'ses-01','coreg',coreg.name),...
+%                     'i_InverseRegistration',true,...
+%                     'i_InterpolationMethod','NearestNeighbours',...
+%                     'o_OutputVolumes',         fullfile('preprocessing',subjectlist{1},'ses-01','label_in_anat.nii'))
+%
+%                 tvm_resliceVolume(config)
