@@ -21,6 +21,7 @@ for SID = 1:length(subjectlist)
  
     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func','*_desc-occipitalcropMeanBias_bold.nii'));
          
+
     assert(~isempty(p_meanrun),'could not find mean functional file')
     
     i_corrMat   = fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_mode-image.mat']);

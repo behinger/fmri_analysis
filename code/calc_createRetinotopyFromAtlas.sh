@@ -3,14 +3,20 @@ set -e
 
 _tmp=${subjectlist:='S10'}
 _tmp=${bidsdir:='SubjectData'}
-_tmp=${task:='sustained'}
+
+_tmp=${task:='WM'}
+
 # activate venv
 
 module load anaconda3 # donders infrastructure
 #source activate $bidsdir/../../../venv_sequence
+
 #source activate /project/3018028.04/benehi/$task/venv_sequence
 
-source activate fmri
+#source activate fmri
+
+source activate /home/predatt/jondeg/.conda/envs/fmri
+
 
 # for old venv
 # source $bidsdir/../../../venv/bin/activate
