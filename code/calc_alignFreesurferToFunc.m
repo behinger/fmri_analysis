@@ -1,11 +1,8 @@
 % Align Freesurfer surface to functional data
-function calc_alignFreesurferToFunc(datadir,subjectlist)
+function calc_alignFreesurferToFunc(datadir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
     { 'task','string',[],'sustained'
     });
-
-
-
 for SID = 1:length(subjectlist)
     % Relaignment configuration - using settings from petkok's code, assuming
     % they are fine...
@@ -25,7 +22,9 @@ for SID = 1:length(subjectlist)
     %to this if using MPRAGE (no MP2RAGE)
     
 
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMean_bold.nii',cfg.task)));
+    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMean_bold.nii',cfg.task)));
+%     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-WM*_desc-occipitalcropMean_bold.nii')));
+
     if length(p_meanrun) ~=1
         error('could not find mean functional')
     end

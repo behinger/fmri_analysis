@@ -1,4 +1,4 @@
-function vis_volumeCoregistration(bidsdir,subjectlist)
+function vis_volumeCoregistration(bidsdir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
     { 'plotLabel','string',[],'varea'
     });

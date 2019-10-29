@@ -2,13 +2,13 @@
 set -e
 # Align mean functional image to 3T nu anatomy (used for retinotopy) and calculate inverse XFM to be used to transform ROIs to mean functional space.
 _tmp=${subjectlist:='S10'}
-_tmp=${datadir:='SubjectData'}
-_tmp=${TASK:='sustained'}
+_tmp=${bidsdir:='SubjectData'}
+_tmp=${TASK:='localizer'}
 
 for SID in $subjectlist
 do
 
-cd $datadir/derivates/preprocessing/$SID/ses-01/func/
+cd $bidsdir/derivates/preprocessing/$SID/ses-01/func/
 
 # FAST correct mean func
 echo 'Fast correcting functional image...'
@@ -24,8 +24,8 @@ echo 'Fast correcting functional image...'
                                                                                                                   
 
     
-fast -t 2 -n 2 -H 0.1 -I 4 -l 20.0 --nopve -B -o './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold.nii' './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMean_bold.nii' 
-mv './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold_restore.nii.gz' './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold.nii.gz'
-gunzip './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold.nii.gz'
-rm './'$SID'_ses-01_task-'$TASK'_desc-occipitalcropMeanBias_bold*.nii.gz'
+fast -t 2 -n 2 -H 0.1 -I 4 -l 20.0 --nopve -B -o './'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii' './'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMean_bold.nii'
+mv './'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold_restore.nii.gz' './'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii.gz'
+gunzip './'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii.gz'
+#rm ./'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold_seg.nii.gz
 done

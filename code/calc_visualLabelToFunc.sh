@@ -2,19 +2,20 @@
 set -e
 
 _tmp=${subjectlist:='S10'}
-_tmp=${datadir:='SubjectData'}
-
-
+_tmp=${bidsdir:='SubjectData'}
+_tmp=${TASK:='localizer'}
 
 
 for SID in $subjectlist
 do
-cd $datadir'/derivates/preprocessing/'$SID'/ses-01/'
+cd $bidsdir/derivates/preprocessing/$SID/ses-01/
 echo 'Moving Visual Labels to Funccropped'
 
+#/project/3018012.20/data/pilot/bids/derivates/preprocessing/sub-91/ses-01/
 
-ref='func/'$SID'_ses-01_task-*_desc-occipitalcropMeanBias_bold.nii'
-inToRef='coreg/'$SID'_ses-01_from-ANAT_to-FUNCCROPPED.mat'
+
+ref='./func/'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii'
+inToRef='./coreg/'$SID'_ses-01_from-ANAT_to-FUNCCROPPED.mat'
 
 
 for label in 'varea' 'eccen' 'sigma' 'angle'
