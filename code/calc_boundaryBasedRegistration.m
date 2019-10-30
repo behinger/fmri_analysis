@@ -2,7 +2,7 @@
 % data
 function calc_boundaryBasedRegistration(datadir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
-    { 'task','string',[],'sustained'
+    { 'task','string',[],'sustained' % not used
     });
 if ischar(cfg)
     error(cfg)
@@ -19,9 +19,9 @@ for SID = 1:length(subjectlist)
 
     
  
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMeanBias_bold.nii',cfg.task)));
-%     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-WM*_desc-occipitalcropMeanBias_bold.nii')));
-       
+    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func','*_desc-occipitalcropMeanBias_bold.nii'));
+         
+
     assert(~isempty(p_meanrun),'could not find mean functional file')
     
     i_corrMat   = fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_mode-image.mat']);
