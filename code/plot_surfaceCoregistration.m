@@ -4,7 +4,7 @@
 function plot_surfaceCoregistration(datadir,SID,varargin)
 cfg = finputcheck(varargin, ...
     { 'slicelist'         'integer'   []       []; ...
-    'axis',             'string', {'x','y','z'}, 'z';...
+    'axis',             'string', {'coronal','sagittal','transversal','x','y','z'}, 'z';...
     'method','string',{'2d','movie'},'2d';...
     'boundary_identifier'       'string'     []    'from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface' ; ...
     'functional_identifier'     'string'     []    '%s_ses-01_task-%s_desc-occipitalcropMeanBias_bold.nii';
@@ -30,7 +30,7 @@ switch cfg.method
     case '2d'
         configuration.i_Volume = spm_read_vols(functional);
         configuration.i_Axis = cfg.axis;
-
+        
         if isempty(cfg.slicelist)
             
             cfg.slicelist = unique(round(linspace(1,functional.dim(cfg.axis=='xyz'),24)));
@@ -67,13 +67,46 @@ switch cfg.method
             % show additional text (fiedtrip style) showing additional ifo
             text(0.01,0.01,sprintf('Slice %i \nBound: %s\nFunctional: %s',cfg.slicelist(curSlice),cfg.boundary_identifier,cfg.functional_identifier),'VerticalAlignment','bottom','units','normalized','Fontsize',7,'Interpreter','none','Color','White')
         end
+        %% XXX Why is this here?
+        % Shouldn't this be in a more specific function?
+        splt = strsplit(cfg.boundary_identifier,'_');
         
+        splt(3:4) = [];
+        ix = strfind(splt,'desc');
+        ix = cellfun(@(x)isempty(ix),ix);
+        if any(ix)
+            splt{ix} = [splt{ix} '%s%s'];
+        else
+            splt(end+1) = splt(end);
+            splt{end-1} = 'desc-%s%s';
+        end
+        
+        if ~exist(fullfile(subjectDirectory,'surface'),'dir')
+            mkdir(fullfile(subjectDirectory,'surface'))
+        end
+        
+        for hemisphere = {'left','right'}
+            for surface = {'white','gray'}
+                fName= fullfile(subjectDirectory,'surface',sprintf(strjoin(splt,'_'),surface{1},hemisphere{1}));
+                
+                switch surface{1}
+                    case 'white'
+                        surf = wSurface;
+                    case 'gray'
+                        surf = pSurface;
+                end
+                tvm_exportObjFile(surf{strcmp(hemisphere{1},'right')+1}, faceData{strcmp(hemisphere{1},'right')+1}, fName)
+                
+                
+            end
+        end
         
     case 'movie'
-        configuration.i_ReferenceVolume = functional;
+        configuration.i_SubjectDirectory = '/';
+        configuration.i_ReferenceVolume = functional.fname;
         configuration.i_Boundaries = boundaryFile;
-        configuration.i_Axis = 'transversal';
-        configuration.o_RegistrationMovie = fullfile(subjectDirectory,'coreg',sprintf('%s_ses-01_%s.avi',SID,cfg.boundary_identifier));
+        configuration.i_Axis = cfg.axis;
+        configuration.o_RegistrationMovie = fullfile(subjectDirectory,'coreg',sprintf('%s_axis-%s.avi',cfg.boundary_identifier,cfg.axis));
         tvm_volumeWithBoundariesToMovie(configuration);
         
         
@@ -81,39 +114,7 @@ end
 
 
 
-%% XXX Why is this here?
-% Shouldn't this be in a more specific function?
-splt = strsplit(cfg.boundary_identifier,'_');
 
-splt(3:4) = [];
-ix = strfind(splt,'desc');
-ix = cellfun(@(x)isempty(ix),ix);
-if any(ix)
-    splt{ix} = [splt{ix} '%s%s'];
-else
-    splt(end+1) = splt(end);
-    splt{end-1} = 'desc-%s%s';
-end
-
-if ~exist(fullfile(subjectDirectory,'surface'),'dir')
-    mkdir(fullfile(subjectDirectory,'surface'))
-end
-
-for hemisphere = {'left','right'}
-    for surface = {'white','gray'}
-        fName= fullfile(subjectDirectory,'surface',sprintf(strjoin(splt,'_'),surface{1},hemisphere{1}));
-        
-        switch surface{1}
-            case 'white'
-                surf = wSurface;
-            case 'gray'
-                surf = pSurface;
-        end
-        tvm_exportObjFile(surf{strcmp(hemisphere{1},'right')+1}, faceData{strcmp(hemisphere{1},'right')+1}, fName)
-        
-        
-    end
-end
 
 
 clear configuration;
