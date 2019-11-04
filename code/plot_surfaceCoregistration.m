@@ -1,11 +1,12 @@
 % Visualise results of recursive boundary registration
 
 % Subjects to process
-function vis_surfaceCoregistration(datadir,SID,varargin)
+function plot_surfaceCoregistration(datadir,SID,varargin)
 cfg = finputcheck(varargin, ...
     { 'slicelist'         'integer'   []       []; ...
     'axis',             'string', {'x','y','z'}, 'z';...
-    'boundary_identifier'       'string'     []    'Anat2FuncBoundaries_recurs' ; ...
+    'method','string',{'2d','movie'},'2d';...
+    'boundary_identifier'       'string'     []    'from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface' ; ...
     'functional_identifier'     'string'     []    '%s_ses-01_task-%s_desc-occipitalcropMeanBias_bold.nii';
     'task','string',[],'sustained'
     });
@@ -13,65 +14,77 @@ if ischar(cfg)
     error(cfg)
 end
 
+subjectDirectory = fullfile(datadir,'derivates','preprocessing',SID,'ses-01');
+
+
 cfg.functional_identifier = sprintf(cfg.functional_identifier,SID,cfg.task);
 cfg.boundary_identifier = sprintf(cfg.boundary_identifier,SID);
+boundaryFile = fullfile(subjectDirectory, 'coreg',[cfg.boundary_identifier '.mat']);
+
+functional = spm_vol(fullfile(subjectDirectory, 'func',cfg.functional_identifier));
+
 
 configuration = [];
-subjectDirectory = fullfile(datadir, SID);
-subjectDirectory = fullfile(datadir,'derivates','preprocessing',SID,'ses-01');
-functional = spm_vol(fullfile(subjectDirectory, 'func',cfg.functional_identifier));
-configuration.i_Volume = spm_read_vols(functional);
-%dimension = 1;
-configuration.i_Axis = cfg.axis;
 
-if isempty(cfg.slicelist)
-    
-    cfg.slicelist = unique(round(linspace(1,functional.dim(cfg.axis=='xyz'),24)));
-end
+switch cfg.method
+    case '2d'
+        configuration.i_Volume = spm_read_vols(functional);
+        configuration.i_Axis = cfg.axis;
 
-load(fullfile(subjectDirectory, 'coreg',[cfg.boundary_identifier '.mat']), 'wSurface', 'pSurface', 'faceData');
-configuration.i_Vertices{1} = wSurface;
-configuration.i_Vertices{2} = pSurface;
-configuration.i_Faces{1} = faceData;
-configuration.i_Faces{2} = faceData;
-
-%for curSlice = 1:3:30
-for curSlice = 1:length(cfg.slicelist)
-    if curSlice == 1
-        figure
-    end
-    if length(cfg.slicelist)>1
-        switch cfg.axis
-            case 'x'
-                m_row = ceil(sqrt(length(cfg.slicelist)));
-                n_col = ceil(sqrt(length(cfg.slicelist)));
-            case 'y'
-                n_col = 3;
-                m_row = ceil(length(cfg.slicelist)/n_col);
-                
-            case 'z'
-                m_row = 3;
-                n_col = ceil(length(cfg.slicelist)/m_row);
+        if isempty(cfg.slicelist)
+            
+            cfg.slicelist = unique(round(linspace(1,functional.dim(cfg.axis=='xyz'),24)));
         end
-        subplot_er(m_row,n_col,curSlice);
+        load(boundaryFile, 'wSurface', 'pSurface', 'faceData');
+        configuration.i_Vertices{1} = wSurface;
+        configuration.i_Vertices{2} = pSurface;
+        configuration.i_Faces{1} = faceData;
+        configuration.i_Faces{2} = faceData;
         
-    end
-    
-    
-    configuration.i_Slice = cfg.slicelist(curSlice);
-    
-  
-    tvm_showObjectContourOnSlice(configuration);
-    
-    
-
-%     text(0.01,0.01,sprintf('Slice %i \nBound: %s\nFunctional: %s',cfg.slicelist(curSlice),cfg.boundary_identifier,cfg.functional_identifier),'VerticalAlignment','bottom','units','normalized','Fontsize',7,'Interpreter','none','Color','White')
+        for curSlice = 1:length(cfg.slicelist)
+            if curSlice == 1
+                figure
+            end
+            if length(cfg.slicelist)>1
+                switch cfg.axis
+                    case 'x'
+                        m_row = ceil(sqrt(length(cfg.slicelist)));
+                        n_col = ceil(sqrt(length(cfg.slicelist)));
+                    case 'y'
+                        n_col = 3;
+                        m_row = ceil(length(cfg.slicelist)/n_col);
+                        
+                    case 'z'
+                        m_row = 3;
+                        n_col = ceil(length(cfg.slicelist)/m_row);
+                end
+                subplot_er(m_row,n_col,curSlice);
+                
+            end
+            configuration.i_Slice = cfg.slicelist(curSlice);
+            % do the actual plotting
+            tvm_showObjectContourOnSlice(configuration);
+            % show additional text (fiedtrip style) showing additional ifo
+            text(0.01,0.01,sprintf('Slice %i \nBound: %s\nFunctional: %s',cfg.slicelist(curSlice),cfg.boundary_identifier,cfg.functional_identifier),'VerticalAlignment','bottom','units','normalized','Fontsize',7,'Interpreter','none','Color','White')
+        end
+        
+        
+    case 'movie'
+        configuration.i_ReferenceVolume = functional;
+        configuration.i_Boundaries = boundaryFile;
+        configuration.i_Axis = 'transversal';
+        configuration.o_RegistrationMovie = fullfile(subjectDirectory,'coreg',sprintf('%s_ses-01_%s.avi',SID,cfg.boundary_identifier));
+        tvm_volumeWithBoundariesToMovie(configuration);
+        
+        
 end
 
+
+
+%% XXX Why is this here?
+% Shouldn't this be in a more specific function?
 splt = strsplit(cfg.boundary_identifier,'_');
 
-
-% '%s_ses-01_from-ANATCROPPED_to-FUNCCROPPED_mode-surface','
 splt(3:4) = [];
 ix = strfind(splt,'desc');
 ix = cellfun(@(x)isempty(ix),ix);
@@ -97,12 +110,10 @@ for hemisphere = {'left','right'}
                 surf = pSurface;
         end
         tvm_exportObjFile(surf{strcmp(hemisphere{1},'right')+1}, faceData{strcmp(hemisphere{1},'right')+1}, fName)
-
-
+        
+        
     end
 end
 
 
 clear configuration;
-
-

@@ -3,17 +3,23 @@ function vis_surfaceCoregistration(bidsdir,subjectlist,varargin)
 % a movie
 cfg = finputcheck(varargin, ...
     { 'task','string',[],'sustained'
+    'method','string',{'movie','surfaceOnSlice'},'surfaceOnSlice'
     });
 if ischar(cfg)
     error(cfg)
 end
 
+switch cfg.method
+    case 'surfaceOnSlice'
 
-
-
-plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_mode-surface','axis','z','task',cfg.task)
-plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface','axis','z','task',cfg.task)
-plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task',cfg.task)
+        % compare the three methods
+        for boundary = {'_mode-surface';'_desc-BBR_mode-surface';'_desc-recursive_mode-surface'}
+            plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier',['%s_ses-01_from-ANAT_to-FUNCCROPPED' boundary{1}],'axis','z','task',cfg.task)
+        end
+    case 'movie'
+        plot_surfaceCoregistration(bidsdir,subjectlist{1},'method','movie','boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','task',cfg.task)
+        
+end
 
 % plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task',cfg.task)
 %                 Step9_visualiseRecursiveRegistration(bidsdir,subjectlist,'slicelist',23,'boundary_identifier','Anat2FuncBoundaries_recurs_sam','functional_identifier','meanWM_run1_sam.nii')
