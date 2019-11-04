@@ -1,7 +1,9 @@
 bidsdir = cfg.bidsdir;
 subjectlist = {'sub-04'};%cfg.subjectlist;
 
-bslcorrect = @(x)bsxfun(@minus,x,trimmean(x(:,3),20)); %
+
+
+bslcorrect = @(x)bsxfun(@minus,x,trimmean(x(:,times_tr/TR>=-1.5 & times_tr/TR <=1.5),20)); %
 bsl_statfun_trimmean = @(y)([trimmean(bslcorrect(y),20);bootci(500,{@(ty)trimmean(ty,20),bslcorrect(y)},'alpha',0.05)]);
 
 statfun_trimmean = @(y)([trimmean((y),20);bootci(500,{@(ty)trimmean(ty,20),(y)},'alpha',0.05)]);
