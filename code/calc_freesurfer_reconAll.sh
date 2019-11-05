@@ -17,8 +17,8 @@ echo 'looking for this anatomical image:' $T1Path
 export SUBJECTS_DIR=$bidsdir/derivates/freesurfer/$SID/
 # ses-01 is done in recon-all call, no Idea how to do better sorry!
 mkdir -p $SUBJECTS_DIR
-recon-all -i $T1Path -subjid 'ses-01' -cw256 -all -parallel -hires
+#recon-all -i $T1Path -subjid 'ses-01' -cw256 -all -hires
 
 # incase you need to continue a reconstruction because it stopped
-#recon-all -make all  -subjid 'ses-01' -cw256 -all -parallel -hires
+recon-all -make all  -subjid 'ses-01' -cw256 -all -hires
 

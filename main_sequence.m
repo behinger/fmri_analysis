@@ -12,12 +12,11 @@ end
 
 cfg = [];
 cfg.autoRun = 0;
-cfg.project = 'localizer';
-cfg.bidsdir = fullfile('/','project','3018012.20','data','pilot','bids');
+cfg.project = 'sequence';
+cfg.bidsdir = fullfile('/','project','3018029.10','sequence','data','pilot','bids');
 cfg.scriptdir = fullfile(pwd,'code');
 
-cfg.subjectlist = {'sub-91'};
-cfg.task = 'localizer';
+cfg.subjectlist = {'sub-04'};
 
 % Add some donders-grid things
 cfg = pipeline_config(cfg);
@@ -33,8 +32,8 @@ end
 %%
 
 cfg.phase = 'preprocessing';
-cfg.step = [1:2]; % Copy Anatomical + run freesurfer => Cluster
-cfg.step = [4] % realignFunctions => TODO:cluster
+cfg.step = [1:2]; % Copy Anaotmical + run freesurfer => Cluster
+cfg.step = [4] % realignFunctions => cluster
 cfg.step = [3] % Manually Crop cortex
 cfg.step = [5:7] % after Freesurfer is finished (step 2), calculate GM/WM boundaries => Partially on cluster
 
@@ -44,23 +43,32 @@ cfg.step = [8 10 11]; % align anatomical with functional for V1 ROI, calculate R
 cfg.step = 9; %visually check corregistration of boundaries
 %XXX Todo: Visually check realignment using "theplot"
 
-cfg.step = [2 4]
+
 
 %% Phase 1
 if strcmp(cfg.phase,'preprocessing')
     % path modifications
-   %% 
+    
     for step =cfg.step
       
         switch step
+            case 0
+                % For 7T caipi data you want to run step 0 first :-)
+                calc_CAIPI7tReconstruction(fullfile(cfg.bidsdir,'../','recon'),cfg.subjectlist) % run on cluster, returns
+
+            case 1
+                % simple modification to get a (betteR) T1 from the mp2rage anatomical scan
+                % Not necessary anymore for newer MP2RAGEs
+                %calc_modifyMP2RAGE(cfg.bidsdir,cfg.subjectlist)
             case 2
                 % Segment Anatomical
                 % recon-all to segment
                 for SID =cfg.subjectlist
                     %locally
-                    [~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh'],'-echo');
+                    %[~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh'],'-echo');
                     % runs parrallel with freesurfer 6
-%                     [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh''' cfg.gridpipe_long_4cpu],'-echo'); 
+                    [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh''' cfg.gridpipe_long_4cpu],'-echo');
+                    
                 end
             case 3
                 % crop the occipital cortex
@@ -70,34 +78,34 @@ if strcmp(cfg.phase,'preprocessing')
             case 4
                 % SPM linear realign of functional scans to mean functional
                 % scan. Output mean nifti
-                calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist,'funcidentifier','sub-91_ses-01_task-localizer_acq-rsep3d08mmipat4x2partialbrain_run-1_desc-occipitalcrop_bold.nii')
+                calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist)
             case 5
                 % Rough alignment of mp2rage anatomical to mean functional
-                calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)                               
+                calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist)
                 
             case 6
-% %                 HARD CODED TASK
-                [~,out] = system([cfg.loopeval 'TASK=localizer;','./calc_biascorrectMeanFunc.sh'],'-echo');
+                [~,out] = system([cfg.loopeval './calc_biascorrectMeanFunc.sh'],'-echo');
 
                 % Boundary / Gradient based Surface / Volume alignment
-                calc_boundaryBasedRegistration(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)
+                calc_boundaryBasedRegistration(cfg.bidsdir,cfg.subjectlist,'task','sequential')
             
            
             case 7
                 % TVM recursive Boundary Registration.
-                % TODO: The clustereval should be pulled out to this script
-                calc_cluster_recursiveBoundaryRegistration(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)
+                % Runs on Cluster
+                calc_cluster_recursiveBoundaryRegistration(cfg.bidsdir,cfg.subjectlist,'task','sequential')
             
             case 8
                 calc_backupFreesurfer(cfg.bidsdir,cfg.subjectlist)
-                calc_overwriteFreesurferBoundaries(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)
+                calc_overwriteFreesurferBoundaries(cfg.bidsdir,cfg.subjectlist)
             case 9
 
-                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist)
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist,'task','sequential','method','2d')
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist,'task','sequential','method','movie','axis','transversal')
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist,'task','sequential','method','movie','axis','coronal')
+                vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist,'task','sequential','method','movie','axis','sagittal')
                 
-                
-                
-              case 10
+            case 10
                 % [~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaFullFunc.sh'],'-echo');
                  
                  % if not available go over cropped Anatomical
@@ -175,9 +183,8 @@ if strcmp(cfg.phase,'laminar')
                 
                 % No localizer used for 
                 
-                calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task',cfg.task,'recalculate',0) % in this context we are fine with having the data once, no need to recalculate
+                calc_spm2ndLevel(cfg.bidsdir,{SID},'task','sequential','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
                 
-                calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','localizer','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
                 
                 calc_localizerWeightedFunc(cfg.bidsdir,cfg.subjectlist,'zscore',1,'weight',1,'software2nd','spm')
 
