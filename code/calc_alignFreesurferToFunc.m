@@ -3,9 +3,6 @@ function calc_alignFreesurferToFunc(datadir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
     { 'task','string',[],'sustained' % not in use
     });
-
-
-
 for SID = 1:length(subjectlist)
     % Relaignment configuration - using settings from petkok's code, assuming
     % they are fine...
@@ -24,6 +21,7 @@ for SID = 1:length(subjectlist)
     %configuration.i_FreeSurferFolder = 'Freesurfer_retinotopy/'; % Switch
     %to this if using MPRAGE (no MP2RAGE)
     
+
 
     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func','*desc-occipitalcropMean_bold.nii'));
     if length(p_meanrun) ~=1
