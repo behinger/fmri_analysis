@@ -1,3 +1,8 @@
+%%
+% This script updates sam Lawrence Attention project (~28 subjects) to
+% the bids-data structure we use in the other projects
+% Then we call the coregistration visualization tools to make movies!
+%
 try
     run('code/setup_paths') % init paths and stuff
 end
