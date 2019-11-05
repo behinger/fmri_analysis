@@ -31,8 +31,16 @@ switch cfg.method
         configuration.i_Volume = spm_read_vols(functional);
         configuration.i_Axis = cfg.axis;
         
+        switch cfg.axis
+            case 'coronal'
+                cfg.axis = 'x';
+            case 'sagittal'
+                cfg.axis = 'y';
+            case 'transversal'
+                cfg.axis = 'z';
+        end
+        
         if isempty(cfg.slicelist)
-            
             cfg.slicelist = unique(round(linspace(1,functional.dim(cfg.axis=='xyz'),24)));
         end
         load(boundaryFile, 'wSurface', 'pSurface', 'faceData');
