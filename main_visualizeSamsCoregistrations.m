@@ -43,12 +43,12 @@ for sub = whatSubjectsExist
             warning(cmdout)
         end
     end
-%     system
-
+    %     system
+    
 end
 % ln -s /project/3018028.04/SubjectData/S01/Attention/Coregistrations/Anat2FuncBoundaries_recurs.mat
 % coreg/sub-01_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface.mat
-% ln -s /project/3018028.04/SubjectData/S01/Attention/Niftis/Realigned/meanATTN_run1.nii 
+% ln -s /project/3018028.04/SubjectData/S01/Attention/Niftis/Realigned/meanATTN_run1.nii
 % func/sub-01_ses-01_task-attention_desc-occipitalcropMeanBias_bold.nii
 %%
 for sub = whatSubjectsExist(1:5)

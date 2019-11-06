@@ -1,10 +1,13 @@
+% DONT USE THIS FILE. USE SEQUENCE_PILOT_ANALYSIS_TIMECOURSE.M
+
+error()
 data_path = './local/';
 runIxTop200 = [];
 
 if SID== "sub-04"
     TR = 2.336;
 else
- TR = 1.5;
+    TR = 1.5;
 end
 
 
@@ -18,18 +21,18 @@ for run = 1:8
     for condition = unique(events.condition)'
         for contrast = unique(events.contrast)'
             ci = ci+1;
-fmri_spec.sess(run).cond(ci).name = sprintf('%s-%.1f',condition{1},contrast);
-
-fmri_spec.sess(run).cond(ci).onset =  events{events.run== run & events.message=="stimOnset"&events.trial==1&strcmp(events.condition,condition{1})&events.contrast==contrast,'onset'}';
-fmri_spec.sess(run).cond(ci).duration = repmat(16,size(fmri_spec.sess(run).cond(ci).onset));
-fmri_spec.sess(run).multi_reg = {fullfile(niftis(run).folder,'../','motion',sprintf('%s_ses-01_task-sequential_run-%i_from-run_to-mean_motion.txt',SID,run))};
-fmri_spec.sess(run).scans = {fullfile(niftis(run).folder,niftis(run).name)};
+            fmri_spec.sess(run).cond(ci).name = sprintf('%s-%.1f',condition{1},contrast);
+            
+            fmri_spec.sess(run).cond(ci).onset =  events{events.run== run & events.message=="stimOnset"&events.trial==1&strcmp(events.condition,condition{1})&events.contrast==contrast,'onset'}';
+            fmri_spec.sess(run).cond(ci).duration = repmat(16,size(fmri_spec.sess(run).cond(ci).onset));
+            fmri_spec.sess(run).multi_reg = {fullfile(niftis(run).folder,'../','motion',sprintf('%s_ses-01_task-sequential_run-%i_from-run_to-mean_motion.txt',SID,run))};
+            fmri_spec.sess(run).scans = {fullfile(niftis(run).folder,niftis(run).name)};
         end
     end
 end
 fmri_spec.cvi = 'AR(1)';
 
-% if exist(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'spmT_0001.nii'),'file')    
+% if exist(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'spmT_0001.nii'),'file')
 % rmdir('./local/GLM','s')
 % warning('Old results found, will not recalculate')
 %     continue

@@ -1,4 +1,4 @@
-function Step3_timecourse_bene(datadir,subjectlist)
+function layer_timecourse(datadir,subjectlist)
 
 
 

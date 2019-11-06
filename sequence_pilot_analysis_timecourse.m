@@ -2,86 +2,86 @@ cfg.datadir = fullfile('/project/3018028.04/benehi/sequence/','data','pilot','bi
 
 for SID = {'sub-01','sub-02','sub-04'}
     SID = SID{1};
-niftis = [dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','func','*task-seq*run-*Realign_bold.nii'))];
-mask_varea = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-varea_space-FUNCCROPPED_label.nii'));
-mask_eccen = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-eccen_space-FUNCCROPPED_label.nii'));
-
-nifti_varea= nifti(fullfile(mask_varea.folder,mask_varea.name));
-nifti_eccen= nifti(fullfile(mask_eccen.folder,mask_eccen.name));
-
-ix_v1= nifti_varea.dat(:) == 1; % V1
-ix_ec15 = nifti_eccen.dat(:) <10; % V1
-
-ix = find(ix_v1==1 & ix_ec15==1);
-
-assert(length(ix)>200)
-%% Load Event Files
-events = collect_events(cfg.datadir,SID);
-%% SPM DEsignmatrix for later voxel selection
-
-
-calc_spm2ndLevel(cfg.datadir,{SID},'task','sequential','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
-
-
-runIxTop200 = [];
-spmdatadir = fullfile(cfg.datadir,'derivates','SPM',SID,'ses-01','GLM',sprintf('run-%i',run));
-for run = 1:8
-    tmpT = nifti(fullfile(spmdatadir,'..',sprintf('run-%i',run),'spmT_0001.nii'));
+    niftis = [dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','func','*task-seq*run-*Realign_bold.nii'))];
+    mask_varea = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-varea_space-FUNCCROPPED_label.nii'));
+    mask_eccen = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-eccen_space-FUNCCROPPED_label.nii'));
     
-    [~,I] = sort(tmpT.dat(ix));
-    runIxTop200{run} = ix(I(end-200:end));
-end
-
-
-%% ZScore, Highpassfilter & mean ROI
-act = [];
-tic
-for run = 1:8
-    fprintf('run %i \t toc: %.2fs\n',run,toc)
+    nifti_varea= nifti(fullfile(mask_varea.folder,mask_varea.name));
+    nifti_eccen= nifti(fullfile(mask_eccen.folder,mask_eccen.name));
     
-    nifti_bold = nifti(fullfile(niftis(run).folder,niftis(run).name));
-    timecourse = double(nifti_bold.dat);
-    fprintf('Z-Score \n')
-    timecourse = bold_ztransform(timecourse);
-    timecourse = permute(timecourse,[4,1,2,3]);
-    size_tc= size(timecourse);
-    fprintf('High Pass Filter \n')
-    timecourse(:) = tvm_highPassFilter(timecourse(:,:),TR,1/128);
-    for tr = 1:size(nifti_bold.dat,4)
+    ix_v1= nifti_varea.dat(:) == 1; % V1
+    ix_ec15 = nifti_eccen.dat(:) <10; % V1
+    
+    ix = find(ix_v1==1 & ix_ec15==1);
+    
+    assert(length(ix)>200)
+    %% Load Event Files
+    events = collect_events(cfg.datadir,SID);
+    %% SPM DEsignmatrix for later voxel selection
+    
+    
+    calc_spm2ndLevel(cfg.datadir,{SID},'task','sequential','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
+    
+    
+    runIxTop200 = [];
+    spmdatadir = fullfile(cfg.datadir,'derivates','SPM',SID,'ses-01','GLM',sprintf('run-%i',run));
+    for run = 1:8
+        tmpT = nifti(fullfile(spmdatadir,'..',sprintf('run-%i',run),'spmT_0001.nii'));
         
-        tmp = timecourse(tr,:,:,:);
-        if exist('runIxTop200','var')
-            act(run,tr) = trimmean(tmp(runIxTop200{run}),20);
-            %           act(run,tr) = mean(tmp(runIxTop200{run}));
-        else
-            act(run,tr) = trimmean(tmp(ix),0.20);
-            %           act(run,tr) = mean(tmp(ix));
+        [~,I] = sort(tmpT.dat(ix));
+        runIxTop200{run} = ix(I(end-200:end));
+    end
+    
+    
+    %% ZScore, Highpassfilter & mean ROI
+    act = [];
+    tic
+    for run = 1:8
+        fprintf('run %i \t toc: %.2fs\n',run,toc)
+        
+        nifti_bold = nifti(fullfile(niftis(run).folder,niftis(run).name));
+        timecourse = double(nifti_bold.dat);
+        fprintf('Z-Score \n')
+        timecourse = bold_ztransform(timecourse);
+        timecourse = permute(timecourse,[4,1,2,3]);
+        size_tc= size(timecourse);
+        fprintf('High Pass Filter \n')
+        timecourse(:) = tvm_highPassFilter(timecourse(:,:),TR,1/128);
+        for tr = 1:size(nifti_bold.dat,4)
+            
+            tmp = timecourse(tr,:,:,:);
+            if exist('runIxTop200','var')
+                act(run,tr) = trimmean(tmp(runIxTop200{run}),20);
+                %           act(run,tr) = mean(tmp(runIxTop200{run}));
+            else
+                act(run,tr) = trimmean(tmp(ix),0.20);
+                %           act(run,tr) = mean(tmp(ix));
+            end
         end
     end
-end
-%%  CUT ERP
-
-
-onsetIX = events.trial == 1;
-events_onset = events(onsetIX,:);
-allDat = calc_erb(act,events_onset,TR,[-3 40])
-
-%%
-%%
-
-
-
-if ~exist('collectDat','var')
-    collectDat = allDat;
-end
-collectDat = collectDat(collectDat.subject ~= str2num(SID(end-1:end)),:); % delete already existing data
-collectDat = [collectDat ;allDat];
+    %%  CUT ERP
+    
+    
+    onsetIX = events.trial == 1;
+    events_onset = events(onsetIX,:);
+    allDat = calc_erb(act,events_onset,TR,[-3 40])
+    
+    %%
+    %%
+    
+    
+    
+    if ~exist('collectDat','var')
+        collectDat = allDat;
+    end
+    collectDat = collectDat(collectDat.subject ~= str2num(SID(end-1:end)),:); % delete already existing data
+    collectDat = [collectDat ;allDat];
 end
 %% Contrast
 for SID = unique(collectDat.subject)'
     allDat =collectDat(collectDat.subject == SID,:);
-        avg_allDat =     grpstats(allDat(allDat.time>=6 & allDat.time<=21,{'block','condition','contrast','run','onset','erb_bsl','erb'}),{'block','run','condition','contrast','onset'},@median);
-%%
+    avg_allDat =     grpstats(allDat(allDat.time>=6 & allDat.time<=21,{'block','condition','contrast','run','onset','erb_bsl','erb'}),{'block','run','condition','contrast','onset'},@median);
+    %%
     figure
     g = gramm('x',allDat.time,'y',allDat.erb_bsl,'color',allDat.contrast);
     g.stat_summary('type','bootci','geom','errorbar','setylim',1,'dodge',0.5);
