@@ -42,8 +42,8 @@ convert_xfm -omat './coreg/'$bids'_from-ANATCROPPED_to-FUNCCROPPED.mat' -inverse
 # we can use normcorr here as it is intramodal
 echo 'Aligning cropped anatomy to original anatomy...'
 
-flirt -in './anat/'$bids'_acq-t1mpragesagiso08_T1w.nii' -ref './anat/'$bids'_acq-t1mpragesagiso08_T1w.nii' \
--out './anat/'$bids'_desc-occipitalcrop_space-ANAT_T1w.nii' -omat './coreg/'$bids'_from-ANATCROPPED_to-ANAT.mat' -bins 600 -cost leastsq -dof 6 -interp trilinear -nosearch
+ flirt -in './anat/'$bids'_desc-occipitalcrop_T1w.nii' -ref './anat/'$bids'_desc-anatomical_T1w.nii' \
+ -out './anat/'$bids'_desc-occipitalcrop_space-ANAT_T1w.nii' -omat './coreg/'$bids'_from-ANATCROPPED_to-ANAT.mat' -bins 600 -cost leastsq -dof 6 -interp trilinear -nosearch
 
 # Create inverse transform
 
