@@ -1,8 +1,12 @@
-cfg.datadir = fullfile('/project/3018028.04/benehi/sustained/','data','pilot','bids');
-SID = 'sub-03'
+
+cfg.datadir = fullfile('/project/3018029.10/sustained/','data','pilot','bids');
+SID = 'sub-05'
 niftis = [dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','func','*task-sus*run-*Realign_bold.nii'))];
 mask_varea = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-varea_space-FUNCCROPPED_label.nii'));
 mask_eccen = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-eccen_space-FUNCCROPPED_label.nii'));
+% Pilot analysis for sub1 - Sub 3 (4?) With the flickering
+% cfg.bidsdir = fullfile('/project/3018028.04/benehi/sustained/','data','pilot','bids');
+
 
 nifti_varea= nifti(fullfile(mask_varea.folder,mask_varea.name));
 nifti_eccen= nifti(fullfile(mask_eccen.folder,mask_eccen.name));
@@ -10,24 +14,30 @@ nifti_eccen= nifti(fullfile(mask_eccen.folder,mask_eccen.name));
 ix_v1= nifti_varea.dat(:) == 1; % V1
 ix_ec10 = nifti_eccen.dat(:) <10; % V1
 
-ix = find(ix_v1 & ix_ec10);
+voxel_select_ix = find(ix_v1 & ix_ec10);
 
 
 %% Load Event Files
-eventFiles = [dir(fullfile(cfg.datadir,SID,'ses-01','func','*task-sus*run-*events.tsv'))];
-events = [];
-for run = 1:length(eventFiles)
-    t = readtable(fullfile(eventFiles(run).folder,eventFiles(run).name),'fileType','text','ReadVariableNames',1,'HeaderLines',0);
-    events = [events;t];
-end
+
+events = collect_events(fullfile(cfg.datadir,'derivates','preprocessing'),SID)
+
 if SID == "sub-01"
-events.Properties.VariableNames{3} = 'condition';
-% to be backwards compatible with sub-01;
-events.message = repmat("stimOnset",size(events,1),1);
-events.block = repmat(1:12,1,size(events,1)/12)';
-
+    events.Properties.VariableNames{3} = 'condition';
+    % to be backwards compatible with sub-01;
+    events.message = repmat("stimOnset",size(events,1),1);
+    events.block = repmat(1:12,1,size(events,1)/12)';
+    
 end
 
+if SID == "sub-05"
+    ix = events.message == "maskOnset";
+    events(ix,'message') = repmat({'stimOffset'},sum(ix),1);
+    % Fix the irrgularity at recording time
+    
+    ix = events.subject == 5;
+    events.run(ix)  = events.run(ix) + 1;
+    
+end
 stimOnsetIX = find(events.message == "stimOnset");
 onsetIX = diff(events{stimOnsetIX,'block'}) == 1;
 onsetIX = [1; stimOnsetIX(find([0; onsetIX]))];
@@ -39,7 +49,7 @@ data_path = './local/';
 runIxTop200 = [];
 
 for run = 1:max(unique(events.run))
-      fmri_spec = struct;
+    fmri_spec = struct;
     fmri_spec.dir = cellstr(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run)));
     fmri_spec.timing.units = 'secs';
     fmri_spec.timing.RT= 1.5;
@@ -72,16 +82,21 @@ for run = 1:max(unique(events.run))
     spm_jobman('run',matlabbatch);
 end
 
-for run = 1:max(unique(events.run))
+for run = 1:max(unique(events.>>>>>>> a38c742658fb7a34fcbb329772c6c0638708aee5run))
     tmpT = nifti(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'spmT_0001.nii'));
     
-    [~,I] = sort(tmpT.dat(ix));
-    runIxTop200{run} = ix(I(end-200:end));
+    [~,I] = sort(tmpT.dat(voxel_select_ix));
+    runIxTop200{run} = voxel_select_ix(I(end-200:end));
 end
 
 
 
 %% ZScore, Highpassfilter & mean ROI
+if SID == "sub-01"
+    TR = 3.408;
+else
+    TR = 1.5;
+end
 act = [];
 tic
 for run = 1:max(unique(events.run))
@@ -92,23 +107,19 @@ for run = 1:max(unique(events.run))
     timecourse = bold_ztransform(timecourse);
     timecourse = permute(timecourse,[4,1,2,3]);
     size_tc= size(timecourse);
-    timecourse(:) = tvm_highPassFilter(timecourse(:,:),1.5,1/128);
+    timecourse(:) = tvm_highPassFilter(timecourse(:,:),TR,1/128);
     for tr = 1:size(nifti_bold.dat,4)
         
         tmp = timecourse(tr,:,:,:);
         if exist('runIxTop200','var')
             act(run,tr) = nanmean(tmp(runIxTop200{run}));
         else
-            act(run,tr) = nanmean(tmp(ix));
+            act(run,tr) = nanmean(tmp(voxel_select_ix));
         end
     end
 end
 %%  CUT ERP
-if SID == "sub-01"
-    TR = 3.408;
-else
-    TR = 1.5;
-end
+
 
 events_onset = events(events.trial == 1,:);
 allDat = [];
@@ -126,29 +137,48 @@ end
 
 
 %%
+% bslcorrect =@(x,times)100*bsxfun(@rdivide,x,mean(x(:,times>=-1.5 & times <=1.5),2))-100;
 bslcorrect =@(x,times)bsxfun(@minus,x,mean(x(:,times>=-1.5 & times <=1.5),2));
+
+
 allDat.erb_bsl = bslcorrect(allDat.erb,ix_time);
+
+% plotData  = allDat.erb;
+plotData  = allDat.erb_bsl;
+
 %% Contrast
 figure
-g = gramm('x',ix_time,'y',allDat.erb_bsl,'color',allDat.condition);
+g = gramm('x',ix_time,'y',plotData,'color',allDat.condition);
 g.stat_summary('type','bootci','geom','errorbar','setylim',1,'dodge',0.5);
 g.stat_summary('type','ci','geom','point','setylim',1);
 g.stat_summary('type','ci','geom','line','setylim',1);
 g.draw();
 g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-condition_plot.pdf',SID));
+
+
+%% Contrast
+figure
+g = gramm('x',ix_time,'y',plotData,'color',allDat.condition);
+g.geom_line('alpha',0.5);
+g.stat_summary('type','bootci','geom','errorbar','setylim',0,'dodge',0.5);
+g.stat_summary('type','ci','geom','point','setylim',0);
+
+g.stat_summary('type','ci','geom','line','setylim',0);
+g.draw();
+g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-condition_plot.pdf',SID));
 %% Attention Contrast
 figure
-g = gramm('x',ix_time,'y',allDat.erb_bsl,'color',allDat.condition)
+g = gramm('x',ix_time,'y',plotData,'color',allDat.condition)
 g.stat_summary('type','bootci','geom','errorbar','setylim',1,'dodge',0.5);
 g.stat_summary('type','ci','geom','point','setylim',1,'dodge',0);
 g.stat_summary('type','ci','geom','line','setylim',1,'dodge',0);
-g.facet_wrap(allDat.attention);
+g.facet_wrap(allDat.stimulus);
 % g.axe_property('Ylim',[-0.38 1.6])
 g.draw();
 g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-conditionAttention_plot.pdf',SID));
 %%
 figure
-g = gramm('x',allDat.condition,'y',median(allDat.erb_bsl(:,ix_time >= 6 & ix_time<=21),2),'color',allDat.attention);
+g = gramm('x',allDat.condition,'y',median(plotData(:,ix_time >= 6 & ix_time<=21),2),'color',allDat.stimulus);
 g.stat_summary('type','bootci','geom','errorbar','dodge',0.2);
 g.stat_summary('geom','point','dodge',0.2);
 g.geom_point('alpha',0.2,'dodge',0.05);
@@ -158,7 +188,7 @@ g.draw();
 g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-meanConditionAttention_plot.pdf',SID));
 %%
 figure
-g = gramm('x',(allDat.run-1)*12+allDat.block,'y',median(allDat.erb_bsl(:,ix_time >= 6 & ix_time<=21),2),'color',allDat.condition,'marker',allDat.attention,'linestyle',allDat.attention);
+g = gramm('x',(allDat.run-1)*12+allDat.block,'y',median(plotData(:,ix_time >= 6 & ix_time<=21),2),'color',allDat.condition,'marker',allDat.stimulus,'linestyle',allDat.stimulus);
 g.geom_point()
 g.stat_glm()
 g.draw();
