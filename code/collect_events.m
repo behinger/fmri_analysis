@@ -1,6 +1,9 @@
 function events = collect_events(datadir,SID)
-
-eventFiles = [dir(fullfile(datadir,SID,'ses-01','func','*run-*events.tsv'))];
+searchPath = fullfile(datadir,SID,'ses-01','func','*run-*events.tsv');
+eventFiles = [dir(searchPath)];
+if isempty(eventFiles)
+    warning('no files found in %s, return empty',searchPath)
+end
 events = [];
 for run = 1:length(eventFiles)
     t = readtable(fullfile(eventFiles(run).folder,eventFiles(run).name),'fileType','text');
