@@ -1,5 +1,5 @@
-cfg.datadir = fullfile('/project/3018028.04/benehi/sustained/','data','pilot','bids');
-SID = 'sub-03'
+cfg.datadir = fullfile('/project/3018029.10/sustained/','data','pilot','bids');
+SID = 'sub-05'
 niftis = [dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','func','*task-sus*run-*Realign_bold.nii'))];
 mask_varea = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-varea_space-FUNCCROPPED_label.nii'));
 mask_eccen = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-eccen_space-FUNCCROPPED_label.nii'));
@@ -14,18 +14,13 @@ ix = find(ix_v1 & ix_ec10);
 
 
 %% Load Event Files
-eventFiles = [dir(fullfile(cfg.datadir,SID,'ses-01','func','*task-sus*run-*events.tsv'))];
-events = [];
-for run = 1:length(eventFiles)
-    t = readtable(fullfile(eventFiles(run).folder,eventFiles(run).name),'fileType','text','ReadVariableNames',1,'HeaderLines',0);
-    events = [events;t];
-end
+events = collect_events(fullfile(cfg.datadir,'derivates','preprocessing'),SID)
 if SID == "sub-01"
-events.Properties.VariableNames{3} = 'condition';
-% to be backwards compatible with sub-01;
-events.message = repmat("stimOnset",size(events,1),1);
-events.block = repmat(1:12,1,size(events,1)/12)';
-
+    events.Properties.VariableNames{3} = 'condition';
+    % to be backwards compatible with sub-01;
+    events.message = repmat("stimOnset",size(events,1),1);
+    events.block = repmat(1:12,1,size(events,1)/12)';
+    
 end
 
 stimOnsetIX = find(events.message == "stimOnset");
@@ -39,7 +34,7 @@ data_path = './local/';
 runIxTop200 = [];
 
 for run = 1:max(unique(events.run))
-      fmri_spec = struct;
+    fmri_spec = struct;
     fmri_spec.dir = cellstr(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run)));
     fmri_spec.timing.units = 'secs';
     fmri_spec.timing.RT= 1.5;
