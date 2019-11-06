@@ -82,7 +82,7 @@ for run = 1:max(unique(events.run))
     spm_jobman('run',matlabbatch);
 end
 
-for run = 1:max(unique(events.>>>>>>> a38c742658fb7a34fcbb329772c6c0638708aee5run))
+for run = 1:max(unique(events.run))
     tmpT = nifti(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'spmT_0001.nii'));
     
     [~,I] = sort(tmpT.dat(voxel_select_ix));
