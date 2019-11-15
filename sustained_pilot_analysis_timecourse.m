@@ -19,7 +19,7 @@ voxel_select_ix = find(ix_v1 & ix_ec10);
 
 %% Load Event Files
 
-events = collect_events(fullfile(cfg.datadir,'derivates','preprocessing'),SID)
+events = collect_events(fullfile(cfg.datadir),SID)
 
 if SID == "sub-01"
     events.Properties.VariableNames{3} = 'condition';
@@ -44,50 +44,17 @@ onsetIX = [1; stimOnsetIX(find([0; onsetIX]))];
 events.trial = nan(size(events,1),1);
 events.trial(onsetIX) = 1; % to mark the onset
 
-%% SPM DEsignmatrix for later voxel selection
-data_path = './local/';
-runIxTop200 = [];
+%% Voxel selection
 
-for run = 1:max(unique(events.run))
-    fmri_spec = struct;
-    fmri_spec.dir = cellstr(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run)));
-    fmri_spec.timing.units = 'secs';
-    fmri_spec.timing.RT= 1.5;
-    fmri_spec.sess.cond.name = 'Stimulus';
-    fmri_spec.sess.cond.onset =  events{events.run== run & events.message=="stimOnset"&events.trial==1,'onset'}';
-    fmri_spec.sess.cond.duration = repmat(16,size(fmri_spec.sess.cond.onset));
-    fmri_spec.sess.scans = {fullfile(niftis(run).folder,niftis(run).name)};
-    fmri_spec.cvi = 'AR(1)';
-    
-    if exist(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'spmT_0001.nii'),'file')
-        % rmdir('./local/GLM','s')
-        warning('Old results found, will not recalculate')
-        continue
-    end
-    matlabbatch = [];
-    matlabbatch{1}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.parent = cellstr(data_path);
-    matlabbatch{1}.cfg_basicio.file_dir.dir_ops.cfg_mkdir.name = fullfile('GLM',sprintf('%s_run-%i',SID, run));
-    
-    matlabbatch{2} = struct('spm',struct('stats',struct('fmri_spec',fmri_spec)));
-    tmp = struct;
-    tmp.stats.fmri_est.spmmat = cellstr(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'SPM.mat'));
-    matlabbatch{3} = struct('spm',tmp);
-    
-    % Contrasts
-    %--------------------------------------------------------------------------
-    matlabbatch{4}.spm.stats.con.spmmat = cellstr(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'SPM.mat'));
-    matlabbatch{4}.spm.stats.con.consess{1}.tcon.name = 'Stim > Rest';
-    matlabbatch{4}.spm.stats.con.consess{1}.tcon.weights = [1 0];
-    % Call script to set up design
-    spm_jobman('run',matlabbatch);
-end
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',0)
+% generate default contrasts (main effects)
+% calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
 
-for run = 1:max(unique(events.run))
-    tmpT = nifti(fullfile(data_path,'GLM',sprintf('%s_run-%i',SID, run),'spmT_0001.nii'));
-    
-    [~,I] = sort(tmpT.dat(voxel_select_ix));
-    runIxTop200{run} = voxel_select_ix(I(end-200:end));
-end
+tmpT = nifti(fullfile(cfg.datadir,'derivates','spm',SID,'ses-01','GLM','run-all','spmT_0001.nii'));
+
+[~,I] = sort(tmpT.dat(voxel_select_ix));
+ixTop200 = voxel_select_ix(I(end-200:end));
+
 
 
 
@@ -107,15 +74,12 @@ for run = 1:max(unique(events.run))
     timecourse = bold_ztransform(timecourse);
     timecourse = permute(timecourse,[4,1,2,3]);
     size_tc= size(timecourse);
-    timecourse(:) = tvm_highPassFilter(timecourse(:,:),TR,1/128);
+    timecourse(:) = tvm_highPassFilter(timecourse(:,:),TR,1/100);
     for tr = 1:size(nifti_bold.dat,4)
         
         tmp = timecourse(tr,:,:,:);
-        if exist('runIxTop200','var')
-            act(run,tr) = nanmean(tmp(runIxTop200{run}));
-        else
-            act(run,tr) = nanmean(tmp(voxel_select_ix));
-        end
+        act(run,tr) = nanmean(tmp(ixTop200));
+    
     end
 end
 %%  CUT ERP
@@ -137,16 +101,16 @@ end
 
 
 %%
-% bslcorrect =@(x,times)100*bsxfun(@rdivide,x,mean(x(:,times>=-1.5 & times <=1.5),2))-100;
-bslcorrect =@(x,times)bsxfun(@minus,x,mean(x(:,times>=-1.5 & times <=1.5),2));
+%  bslcorrect =@(x,times)100*bsxfun(@rdivide,x,mean(x(:,times>=-1.5 & times <=1.5),2))-100;
+bslcorrect =@(x,times)bsxfun(@minus,x,nanmean(x(:,times>=-1.5 & times <=1.5),2));
 
 
 allDat.erb_bsl = bslcorrect(allDat.erb,ix_time);
 
-% plotData  = allDat.erb;
-plotData  = allDat.erb_bsl;
+plotData  = allDat.erb;
+% plotData  = allDat.erb_bsl;
 
-%% Contrast
+%% Condition
 figure
 g = gramm('x',ix_time,'y',plotData,'color',allDat.condition);
 g.stat_summary('type','bootci','geom','errorbar','setylim',1,'dodge',0.5);
@@ -156,7 +120,7 @@ g.draw();
 g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-condition_plot.pdf',SID));
 
 
-%% Contrast
+%% Condition single trial
 figure
 g = gramm('x',ix_time,'y',plotData,'color',allDat.condition);
 g.geom_line('alpha',0.5);
@@ -165,8 +129,8 @@ g.stat_summary('type','ci','geom','point','setylim',0);
 
 g.stat_summary('type','ci','geom','line','setylim',0);
 g.draw();
-g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-condition_plot.pdf',SID));
-%% Attention Contrast
+g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-conditionSingletrial_plot.pdf',SID));
+%% Condition / stimulus
 figure
 g = gramm('x',ix_time,'y',plotData,'color',allDat.condition)
 g.stat_summary('type','bootci','geom','errorbar','setylim',1,'dodge',0.5);
@@ -175,7 +139,7 @@ g.stat_summary('type','ci','geom','line','setylim',1,'dodge',0);
 g.facet_wrap(allDat.stimulus);
 % g.axe_property('Ylim',[-0.38 1.6])
 g.draw();
-g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-conditionAttention_plot.pdf',SID));
+g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-conditionStimulustype_plot.pdf',SID));
 %%
 figure
 g = gramm('x',allDat.condition,'y',median(plotData(:,ix_time >= 6 & ix_time<=21),2),'color',allDat.stimulus);
