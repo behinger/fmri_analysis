@@ -1,4 +1,4 @@
-function calc_spm2ndLevel(datadir,subjectlist,varargin)
+function calc_spm2ndLevel(bidsdir,subjectlist,varargin)
 
 cfg = finputcheck(varargin, ...
     {
@@ -19,7 +19,7 @@ for SID = subjectlist
     
     SID = SID{1};
     
-    events = collect_events(datadir,SID);
+    events = collect_events(bidsdir,SID);
     
     if cfg.task == "sustained"
         % we need to find the block onset
@@ -34,7 +34,7 @@ for SID = subjectlist
             events.run(ix)  = events.run(ix) + 1;
         end
     end
-    niftis = [dir(fullfile(datadir,'derivates','preprocessing',SID,'ses-01','func',sprintf('*task-%s*run-*Realign_bold.nii',cfg.task)))];
+    niftis = [dir(fullfile(bidsdir,'derivates','preprocessing',SID,'ses-01','func',sprintf('*task-%s*run-*Realign_bold.nii',cfg.task)))];
     
     % bit weird if-combination but its late, should work [I mean I myself shouldnt be working] :)
     if isempty(cfg.TR)
@@ -67,9 +67,9 @@ for SID = subjectlist
     for run_ix = 0%:8
         if run_ix == 0
             
-            spmdatadir = fullfile(datadir,'derivates','spm',SID,'ses-01','GLM','run-all');
+            spmdatadir = fullfile(bidsdir,'derivates','spm',SID,'ses-01','GLM','run-all');
         else
-            spmdatadir = fullfile(datadir,'derivates','spm',SID,'ses-01','GLM',sprintf('run-%i',run_ix));
+            spmdatadir = fullfile(bidsdir,'derivates','spm',SID,'ses-01','GLM',sprintf('run-%i',run_ix));
         end
         
         fmri_spec = struct;
@@ -108,17 +108,22 @@ for SID = subjectlist
                     end
                     onsets = events{ix,'onset'};
                     if isempty(onsets)
+                        warning(sprintf('No events found for run %i, name:%s',run,name(2:end)))
                         continue
                     end
                     
                     
                     
                     
+                    if ~isfield(fmri_spec,'sess') || (run>1 && length(fmri_spec.sess) == run-1)
+                        %                         fmri_spec.sess(run).cond = []
+                        fmri_spec.sess(run).cond.name = name(2:end);
+                    else
+                        fmri_spec.sess(run).cond(end+1).name = name(2:end);
+                    end
                     
-                    fmri_spec.sess(run).cond(ci).name = name(2:end);
-                    
-                    fmri_spec.sess(run).cond(ci).onset =  onsets;
-                    fmri_spec.sess(run).cond(ci).duration = repmat(16,size(fmri_spec.sess(run).cond(ci).onset));
+                    fmri_spec.sess(run).cond(end).onset =  onsets;
+                    fmri_spec.sess(run).cond(end).duration = repmat(8,size(fmri_spec.sess(run).cond(end).onset));
                     fmri_spec.sess(run).multi_reg = {fullfile(niftis(run).folder,'../','motion',sprintf('%s_ses-01_task-%s_run-%i_from-run_to-mean_motion.txt',SID,cfg.task,run))};
                     fmri_spec.sess(run).scans = {fullfile(niftis(run).folder,niftis(run).name)};
                     
@@ -151,28 +156,10 @@ for SID = subjectlist
     tmp = struct;
     tmp.stats.fmri_est.spmmat = cellstr(fullfile(spmdatadir,'SPM.mat'));
     matlabbatch{2} = struct('spm',tmp);
-    
-    % Contrasts
-    %--------------------------------------------------------------------------
-    
-
-    nruns = length(unique(events.run));
-    nconditions = length(fmri_spec.sess(1).cond);
-    % stim vs. baseline [ ncond x1  nmotionReg x 0 nrun x 0]
-%     matlabbatch{3}.spm.stats.con.consess{1}.tcon.weights = [repmat([repmat(1,1,nconditions), repmat(0,1,6)],1,nruns) zeros(1,nruns);];    
-%     matlabbatch{3}.spm.stats.con.spmmat = cellstr(fullfile(spmdatadir,'SPM.mat'));
-%     matlabbatch{3}.spm.stats.con.consess{1}.tcon.name = 'Stim > Rest';
-%     
-    % simple effect
-%     warning('not all stuff is implemented, i.e. main effects missing, interactions etc.')
-%     for c = 1:length(cfg.conditions)
-%         ref = combinations{c} == 1;
-%         ref = ref(:)*2 -1; % flattening & effect coding
-%         matlabbatch{3}.spm.stats.con.consess{end+1}.tcon.weights = [repmat([ref', repmat(0,1,6)],1,nruns) zeros(1,nruns)];
-%         matlabbatch{3}.spm.stats.con.spmmat = cellstr(fullfile(spmdatadir,'SPM.mat'));
-%         matlabbatch{3}.spm.stats.con.consess{end}.tcon.name = [cfg.conditions{c} ':' conditionLevels{c}{1} ' vs. others'];
-%     end
-    % Call script to set up design
+  
+    % Generate the designmatrices + Fit them!
     spm_jobman('run',matlabbatch);
+    % recommended to run  calc_spmContrast now
+    
 end
 end
