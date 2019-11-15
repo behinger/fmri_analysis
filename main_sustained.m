@@ -125,7 +125,6 @@ if strcmp(cfg.phase,'preprocessing')
 end
 
 %% Phase Univariate Modeling
-calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'})
 
 % I replaced this with SPM, as I like their coding way much better.
 % see the sequence_pilot_analysis_spmbatch file
@@ -182,10 +181,6 @@ if strcmp(cfg.phase,'laminar')
                 % (weighting might be controversial)
                 
                 % No localizer used for 
-                
-                calc_spm2ndLevel(cfg.bidsdir,{SID},'task','sequential','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
-                
-                
                 calc_localizerWeightedFunc(cfg.bidsdir,cfg.subjectlist,'zscore',1,'weight',1,'software2nd','spm')
 
 
@@ -209,6 +204,14 @@ end
 
 %%
 % For ROI-wise Plots:
+sustained_pilot_analysis_timecourse
+
+
+%For Whole-Brain SPM analysis
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',1)
+% generate default contrasts (main effects)
+calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
+
 
 
 % For Layer-wise Plots
