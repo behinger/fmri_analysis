@@ -207,8 +207,26 @@ end
 sustained_pilot_analysis_timecourse
 
 
+events = collect_events(cfg.bidsdir,cfg.subjectlist{1});
+
+% we need to find the block onset
+stimOnsetIX = find(events.message == "stimOnset");
+onsetIX = diff(events{stimOnsetIX,'block'}) == 1;
+onsetIX = [1; stimOnsetIX(find([0; onsetIX]))];
+events.blockOnset = zeros(size(events,1),1);
+events.blockOnset(onsetIX) = 1; % to mark the onset
+if cfg.subjectlist{1} == "sub-05"
+    % fix inconsistency during recording
+    ix = events.subject == 5;
+    events.run(ix)  = events.run(ix) + 1;
+end
+
+% take only block onsets :-)
+events = events(events.blockOnset == 1,:);
+
+    
 %For Whole-Brain SPM analysis
-calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',1)
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,events,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',1)
 % generate default contrasts (main effects)
 calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
 

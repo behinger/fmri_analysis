@@ -1,4 +1,4 @@
-function calc_spm2ndLevel(bidsdir,subjectlist,varargin)
+function calc_spm2ndLevel(bidsdir,subjectlist,events,varargin)
 
 cfg = finputcheck(varargin, ...
     {
@@ -13,41 +13,16 @@ if ischar(cfg)
 end
 
 assert(iscell(subjectlist))
-
+assert(istable(events));
+assert(all(ismember(cfg.conditions,events.Properties.VariableNames)))
 for SID = subjectlist
     
     
     SID = SID{1};
     
-    events = collect_events(bidsdir,SID);
     
-    if cfg.task == "sustained"
-        % we need to find the block onset
-        stimOnsetIX = find(events.message == "stimOnset");
-        onsetIX = diff(events{stimOnsetIX,'block'}) == 1;
-        onsetIX = [1; stimOnsetIX(find([0; onsetIX]))];
-        events.blockOnset = zeros(size(events,1),1);
-        events.blockOnset(onsetIX) = 1; % to mark the onset
-        if SID == "sub-05"
-            % fix inconsistency during recording
-            ix = events.subject == 5;
-            events.run(ix)  = events.run(ix) + 1;
-        end
-    end
     niftis = [dir(fullfile(bidsdir,'derivates','preprocessing',SID,'ses-01','func',sprintf('*task-%s*run-*Realign_bold.nii',cfg.task)))];
     
-    % bit weird if-combination but its late, should work [I mean I myself shouldnt be working] :)
-    if isempty(cfg.TR)
-        
-        if cfg.task=="sequential" && SID== "sub-04"
-            cfg.TR = 2.336;
-        elseif cfg.task == "sequential"
-            cfg.TR = 1.5;
-        else
-            
-            error('please implement TR or read it from bids somehow?')
-        end
-    end
     %% generate condition
     conditionLevels = [];
     ndgridInput = {};
@@ -101,11 +76,7 @@ for SID = subjectlist
                     %subselect a single run
                     ix = ix & events.run == run;
                     
-                    
-                    if cfg.task == "sustained"
-                        % take only block onsets :-)
-                        ix = ix& events.blockOnset == 1;
-                    end
+          
                     onsets = events{ix,'onset'};
                     if isempty(onsets)
                         warning(sprintf('No events found for run %i, name:%s',run,name(2:end)))
