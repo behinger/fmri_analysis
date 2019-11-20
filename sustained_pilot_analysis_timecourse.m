@@ -107,8 +107,8 @@ bslcorrect =@(x,times)bsxfun(@minus,x,nanmean(x(:,times>=-1.5 & times <=1.5),2))
 
 allDat.erb_bsl = bslcorrect(allDat.erb,ix_time);
 
-plotData  = allDat.erb;
-% plotData  = allDat.erb_bsl;
+% plotData  = allDat.erb;
+plotData  = allDat.erb_bsl;
 
 %% Condition
 figure

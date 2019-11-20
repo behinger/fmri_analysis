@@ -226,7 +226,8 @@ events = events(events.blockOnset == 1,:);
 
     
 %For Whole-Brain SPM analysis
-calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,events,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',1)
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,events,'task','sustained','TR',1.5,'conditions',{'
+    ','condition'},'recalculate',1)
 % generate default contrasts (main effects)
 calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
 
