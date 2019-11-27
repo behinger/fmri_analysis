@@ -16,59 +16,75 @@ bids=$SID'_ses-01'
 echo $bids
 
 
+pA=$(find $bidsdir'/'$SID'/ses-01/anat/'| grep _T1w.nii)
+pAc='./anat/'$bids'_desc-occipitalcrop_T1w.nii'
+pAcBias='./anat/'$bids'_desc-occipitalcropBet_T1w.nii.gz'
+pFc='./func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_bold.nii'
 
-echo 'removing skull from anatomical cropped'
+pFc_in_Ac='./func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_space-ANATCROPPED_bold.nii'
+pFc_in_A='./func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_space-ANAT_bold.nii'
+pAc_in_A='./anat/'$bids'_desc-occipitalcrop_space-ANAT_T1w.nii'
+pAc_in_Fc='./anat/'$bids'_desc-occipitalcrop_space-FUNCCROPPED_T1w.nii'
+pA_in_Fc='./anat/'$bids'_desc-anatomical_space-FUNCCROPPED_T1w.nii'
+
+#echo 'removing skull from anatomical cropped'
 # Brain Extract Anatomical Cropped
-bet './anat/'$bids'_desc-occipitalcrop_T1w.nii' './anat/'$bids'_desc-occipitalcropBet_T1w' -Z -f 0.2 -g 0
+bet $pAc $pAcBias -Z -f 0.2 -g 0
 
 echo 'Aligning functional image to cropped anatomy...'
 
-# croppedFunc to croppedAnat
+### croppedFunc to croppedAnat ###
 
-flirt -in './func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_bold.nii' -ref './anat/'$bids'_desc-occipitalcropBet_T1w.nii.gz' -omat './coreg/'$bids'_from-FUNCCROPPED_to-ANATCROPPED.mat' -out './func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_space-ANATCROPPED_bold.nii' -bins 600 -cost corratio  -dof 6 -interp trilinear -searchrx -10 10 -searchry -10 10 -searchrz -10 10
+flirt -in  $pFc \
+      -ref $pAcBias \
+      -out $pFc_in_Ac \
+      -omat './coreg/'$bids'_from-FUNCCROPPED_to-ANATCROPPED.mat' -cost corratio  -dof 12 -interp trilinear -searchrx -10 10 -searchry -10 10 -searchrz -10 10
+gunzip -f $pFc_in_Ac'.gz'
 
-#flirt -in './func/'$bids'_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii' -ref './anat/'$bids'_acq-t1mpragesagiso08_T1w.nii.gz' -omat './coreg/'$bids'_from-FUNCCROPPED_to-ANATCROPPED.mat' -out './func/'$bids'_task-'$TASK'_desc-occipitalcropMeanBias_space-ANATCROPPED_bold.nii' -bins 600 -cost corratio  -dof 6 -interp trilinear -searchrx -10 10 -searchry -10 10 -searchrz -10 10
-
-
-
-gunzip -f './func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_space-ANATCROPPED_bold.nii.gz'
-
+### croppedAnat to croppedFun ###
 # Create inverse transform
-
 echo 'Generating Cropped Anat to Cropped Func'
 convert_xfm -omat './coreg/'$bids'_from-ANATCROPPED_to-FUNCCROPPED.mat' -inverse './coreg/'$bids'_from-FUNCCROPPED_to-ANATCROPPED.mat'
 
-# Align cropped anatomy to original anatomy
-# we can use normcorr here as it is intramodal
-echo 'Aligning cropped anatomy to original anatomy...'
+# apply it
+flirt -in  $pAc\
+      -ref $pFc \
+      -out $pAc_in_Fc \
+      -init './coreg/'$bids'_from-ANATCROPPED_to-FUNCCROPPED.mat' -applyxfm
+gunzip -f $pAc_in_Fc'.gz'
 
- flirt -in './anat/'$bids'_desc-occipitalcrop_T1w.nii' -ref './anat/'$bids'_desc-anatomical_T1w.nii' \
- -out './anat/'$bids'_desc-occipitalcrop_space-ANAT_T1w.nii' -omat './coreg/'$bids'_from-ANATCROPPED_to-ANAT.mat' -bins 600 -cost leastsq -dof 6 -interp trilinear -nosearch
-
-# Create inverse transform
-
-echo 'Generating Anat to Cropped Anat'
-convert_xfm -omat './coreg/'$bids'_from-ANAT_to-ANATCROPPED.mat'  -inverse './coreg/'$bids'_from-ANATCROPPED_to-ANAT.mat'
+### AnatCropped to anat
+flirt -in  $pAc \
+      -ref $pA \
+      -out $pAc_in_A \
+      -omat './coreg/'$bids'_from-ANATCROPPED_to-ANAT.mat' -cost corratio  -dof 6 -interp trilinear -nosearch 
 
 
-
-# unzip nii.gz
-gunzip -f './anat/'$bids'_desc-occipitalcrop_space-ANAT_T1w.nii.gz'
-
-# make a link from ANAT to FUNCCROPPED
-echo 'Generating Anat to Cropped Func'
-convert_xfm -omat './coreg/'$bids'_from-ANAT_to-FUNCCROPPED.mat' -concat './coreg/'$bids'_from-ANATCROPPED_to-FUNCCROPPED.mat' './coreg/'$bids'_from-ANAT_to-ANATCROPPED.mat'
-
+### Anat to croppedFun ###
 echo 'Mapping Anat to Cropped Func'
+convert_xfm -omat './coreg/'$bids'_from-ANAT_to-ANATCROPPED.mat' -inverse './coreg/'$bids'_from-ANATCROPPED_to-ANAT.mat'
+convert_xfm -omat './coreg/'$bids'_from-ANAT_to-FUNCCROPPED.mat' -concat  './coreg/'$bids'_from-ANATCROPPED_to-FUNCCROPPED.mat' './coreg/'$bids'_from-ANAT_to-ANATCROPPED.mat'
 
-flirt -in './anat/'$bids'_desc-anatomical_T1w.nii' -init './coreg/'$bids'_from-ANAT_to-FUNCCROPPED.mat' \
--ref './func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_bold.nii' -out './anat/'$bids'_desc-anatomical_space-FUNCCROPPED_T1w.nii' -applyxfm
+flirt -in  $pA \
+      -ref $pFc \
+      -out $pA_in_Fc \
+      -init './coreg/'$bids'_from-ANAT_to-FUNCCROPPED.mat' -applyxfm -paddingsize 50
 
-#flirt -in './anat/'$bids'_acq-t1mpragesagiso08_T1w.nii' -init './coreg/'$bids'_from-ANAT_to-FUNCCROPPED.mat' \
-#-ref './func/'$bids'_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii' -out './anat/'$bids'_desc-anatomical_space-FUNCCROPPED_T1w.nii' -applyxfm
+gunzip -f $pA_in_Fc'.gz'
 
 
-gunzip -f './anat/'$bids'_desc-anatomical_space-FUNCCROPPED_T1w.nii.gz'
+### croppedFun to Anat ###
+convert_xfm -omat './coreg/'$bids'_from-FUNCCROPPED_to-ANAT.mat' -inverse './coreg/'$bids'_from-ANAT_to-FUNCCROPPED.mat'
+
+echo 'Mapping cropped Func to Anat'
+flirt -in  $pFc \
+      -ref $pA \
+      -out $pFc_in_A \
+      -init './coreg/'$bids'_from-FUNCCROPPED_to-ANAT.mat' -applyxfm
+
+gunzip -f $pFc_in_A'.gz'
+
+
 
 done
 echo 'Done!'
