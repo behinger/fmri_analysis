@@ -1,4 +1,4 @@
-run cfgPlot = [];
+cfgPlot = [];
 cfg.bidsdir = fullfile('/','project','3018029.10','sequence','data','pilot','bids');
 cfg.project = 'sequence';
 
@@ -51,6 +51,7 @@ for SID = 1:length(subjectlist)
                     events = collect_events(cfg.bidsdir,subjectlist{SID});
                     onsetIX = events.trial == 1;
                     events_onset = events(onsetIX,:);
+                    
                     [erb_table,times_tr] = layer_calc_erb(funclist,events_onset,cfgPlot.TR,[-3 20])
                     
                     
@@ -76,7 +77,7 @@ for SID = 1:length(subjectlist)
                     %% ROI-Split up timecourse
                     figure
                     g = gramm('x',times_tr,'y',erb_table.erb,'color',erb_table.roi);
-                    % g.geom_line('alpha',0.2);
+%                     g.geom_line('alpha',0.2);
                     g.stat_summary('type',statfun,'geom',{'line','point','errorbar'},'setylim',1);
                     
                     g.set_names     ('x','Time [s]');
