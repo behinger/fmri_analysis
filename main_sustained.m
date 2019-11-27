@@ -16,7 +16,7 @@ cfg.project = 'sustained';
 cfg.bidsdir = fullfile('/','project','3018029.10',cfg.project,'data','pilot','bids');
 cfg.scriptdir = fullfile(pwd,'code');
 
-cfg.subjectlist = {'sub-05'};
+cfg.subjectlist = {'sub-11'};
 
 % Add some donders-grid things
 cfg = pipeline_config(cfg);
@@ -67,7 +67,7 @@ if strcmp(cfg.phase,'preprocessing')
                     %locally
                     %[~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh'],'-echo');
                     % runs parrallel with freesurfer 6
-                    [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_runFreesurfer.sh''' cfg.gridpipe_long_4cpu],'-echo');
+                    [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh''' cfg.gridpipe_long_4cpu],'-echo');
                     
                 end
             case 3
@@ -109,7 +109,7 @@ if strcmp(cfg.phase,'preprocessing')
                  % if not available go over cropped Anatomical
                  [~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaAnatCrop.sh'],'-echo');
                  
-
+                % debug_alignment(cfg.bidsdir,cfg.subjectlist)
             case 11
                 [~,out] = system([cfg.loopeval './calc_createRetinotopyFromAtlas.sh'],'-echo');
                 [~,out] = system([cfg.loopeval './calc_visualLabelToFunc.sh'],'-echo');
@@ -118,7 +118,7 @@ if strcmp(cfg.phase,'preprocessing')
                 % can specify which label to move (asuming neuropythy
                 % labels exist)
                  vis_volumeCoregistration(cfg.bidsdir,cfg.subjectlist,'plotLabel','varea')
-
+                
         end
         fprintf('Finished Step %i \n',step)
     end
