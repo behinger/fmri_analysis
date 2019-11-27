@@ -18,7 +18,7 @@ for s = subjectlist
         command = [command ' ' fullfile(bidspath,'label',sprintf('*desc-%s_*FUNCCROPPED_label.nii',cfg.plotLabel))];
     end
     
-    fprintf(command)
+    fprintf(['\n' command '\n'])
     %system(command)  % for some reason I cannot start fsleyes directly from matlab :shrug:
 end
 
