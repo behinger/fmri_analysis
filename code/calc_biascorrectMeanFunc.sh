@@ -3,7 +3,7 @@ set -e
 # Align mean functional image to 3T nu anatomy (used for retinotopy) and calculate inverse XFM to be used to transform ROIs to mean functional space.
 _tmp=${subjectlist:='S10'}
 _tmp=${bidsdir:='SubjectData'}
-_tmp=${task:='localizer'}
+_tmp=${task:='WM'}
 
 for SID in $subjectlist
 do

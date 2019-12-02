@@ -1,8 +1,11 @@
 % Align Freesurfer surface to functional data
 function calc_alignFreesurferToFunc(datadir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
-    { 'task','string',[],'sustained' % not in use
+    { 'task','string',[],'sustained'
     });
+if ischar(cfg)
+    error(cfg)
+end
 for SID = 1:length(subjectlist)
     % Relaignment configuration - using settings from petkok's code, assuming
     % they are fine...
@@ -23,13 +26,16 @@ for SID = 1:length(subjectlist)
     
 
 
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func','*desc-occipitalcropMean_bold.nii'));
+    p_meanrun = dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func', [subjectlist{SID},'_ses-01_task-',cfg.task,'_desc-occipitalcropMean_bold.nii']));
+%XXX
+% %     p_meanrun = dir(fullfile(datadir,subjectlist{SID},'ses-01','extra_data', 'flip40_10_masked_bet.nii'));
     if length(p_meanrun) ~=1
         error('could not find mean functional')
     end
     p_corrMat   = fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_mode-image.mat']);
     p_boundaries= fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_mode-surface.mat']);
 
+    %%%configuration.i_ReferenceVolume = fullfile('../',subjectlist{SID},'ses-01','extra_data', 'flip40_10_masked_bet.nii')
     configuration.i_ReferenceVolume = fullfile('preprocessing',subjectlist{SID},'ses-01','func',p_meanrun.name);
     configuration.o_CoregistrationMatrix = p_corrMat;
     configuration.o_Boundaries = p_boundaries;

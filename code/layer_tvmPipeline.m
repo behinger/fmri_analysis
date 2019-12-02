@@ -1,7 +1,7 @@
 % Do layers pipeline on Freesurfer boundaries
 function layer_tvmPipeline(datadir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
-    { 'task'         'string'   []    'sequential'; ... % Set this to 1 to make orientation preference masks for whole ROI
+    { 'task'         'string'   []    'localizer'; ... % Set this to 1 to make orientation preference masks for whole ROI
     
     
     });
@@ -18,6 +18,9 @@ for SID = 1:length(subjectlist)
     bidspath = sprintf(bidspath,'derivates','tvm_layers');
     rel_preprocces = fullfile('../../../','preprocessing',subjectlist{SID},'ses-01');
     rel_freesurfer = fullfile('../../../','freesurfer',subjectlist{SID},'ses-01');
+% %     rel_preprocces = fullfile(bidspath,'preprocessing',subjectlist{SID},'ses-01');
+% %     rel_freesurfer = fullfile(bidspath,'freesurfer',subjectlist{SID},'ses-01');
+
     if ~exist(bidspath,'dir')
         mkdir(bidspath)
     end
@@ -31,8 +34,13 @@ for SID = 1:length(subjectlist)
     configuration = [];
     configuration.i_SubjectDirectory = bidspath;
     configuration.i_Boundaries       = fullfile(rel_preprocces,'coreg',[bidsfilename 'from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface.mat']);
-    
+% %     configuration.i_Boundaries       = fullfile(bidspath,'coreg',[bidsfilename 'from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface.mat']);
+
+
+
     configuration.i_ReferenceVolume  = fullfile(rel_preprocces,'func', [bidsfilename sprintf('task-%s_desc-occipitalcropMeanBias_bold.nii',cfg.task)]);
+% %     configuration.i_ReferenceVolume  = fullfile(bidspath,'func', [bidsfilename sprintf('task-%s_desc-occipitalcropMeanBias_bold.nii',cfg.task)]);
+
 %     configuration.i_ObjWhite         = fullfile(rel_freesurfer,'surf','?h.white.reg.obj');
 %     configuration.i_ObjPial          = fullfile(rel_freesurfer,'surf','?h.pial.reg.obj');
     

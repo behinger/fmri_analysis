@@ -11,8 +11,7 @@ for SID = 1:length(subjectlist)
     
     
 
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMean_bold.nii',cfg.task)));
-%     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-WM_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMean_bold.nii')));
+    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',[subjectlist{SID},'_ses-01_task-',cfg.task,'_desc-occipitalcropMean_bold.nii']));
 
 
     p_corrMat   = fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-image.mat']);

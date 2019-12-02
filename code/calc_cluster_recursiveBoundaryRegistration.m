@@ -15,7 +15,7 @@ subjectConfigurations = cell(length(subjectlist), 1);
 
 % Push on grid
 memoryRequirement = 300 * 1024 ^ 2; %300MB
-timeRequirement = 20 * 60; %2 hours
+timeRequirement = 20 * 600; %2 hours 
 compilation = 'no';
 
 for SID = 1:length(subjectlist)
@@ -37,7 +37,8 @@ for SID = 1:length(subjectlist)
     
     configuration = [];
     configuration.i_SubjectDirectory = fullfile(datadir,'derivates');
-    configuration.i_ReferenceVolume = fullfile('preprocessing',subjectlist{SID},'ses-01','func',p_meanrun.name);
+    configuration.i_ReferenceVolume = fullfile('../',subjectlist{SID},'ses-01','extra_data', 'flip40_10_masked_bet.nii');%fullfile('preprocessing',subjectlist{SID},'ses-01','func',p_meanrun.name);
+    %xxx
 
     configuration.i_Boundaries = i_boundaries;
     configuration.o_Boundaries = o_boundaries;

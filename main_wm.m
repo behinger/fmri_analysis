@@ -12,12 +12,12 @@ end
 
 cfg = [];
 cfg.autoRun = 0;
-cfg.project = 'localizer';
-cfg.bidsdir = fullfile('/','project','3018012.20','data','pilot','bids');
+cfg.project = 'WM';
+cfg.bidsdir = fullfile('/','project','3018012.20','data','bids');
 cfg.scriptdir = fullfile(pwd,'code');
 
-cfg.subjectlist = {'sub-91'};
-cfg.task = 'localizer';
+cfg.subjectlist = {'sub-92'};
+cfg.task = 'WM';
 
 % Add some donders-grid things
 cfg = pipeline_config(cfg);
@@ -70,14 +70,13 @@ if strcmp(cfg.phase,'preprocessing')
             case 4
                 % SPM linear realign of functional scans to mean functional
                 % scan. Output mean nifti
-                calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist,'funcidentifier','sub-91_ses-01_task-localizer_acq-rsep3d08mmipat4x2partialbrain_run-1_desc-occipitalcrop_bold.nii')
+                calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist,'funcidentifier','*desc-occipitalcrop_bold.nii')
             case 5
                 % Rough alignment of mp2rage anatomical to mean functional
                 calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)                               
                 
             case 6
-% %                 HARD CODED TASK
-                [~,out] = system([cfg.loopeval 'TASK=localizer;','./calc_biascorrectMeanFunc.sh'],'-echo');
+                [~,out] = system([cfg.loopeval,'./calc_biascorrectMeanFunc.sh'],'-echo');
 
                 % Boundary / Gradient based Surface / Volume alignment
                 calc_boundaryBasedRegistration(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)
@@ -87,6 +86,7 @@ if strcmp(cfg.phase,'preprocessing')
                 % TVM recursive Boundary Registration.
                 % TODO: The clustereval should be pulled out to this script
                 calc_cluster_recursiveBoundaryRegistration(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)
+                
             
             case 8
                 calc_backupFreesurfer(cfg.bidsdir,cfg.subjectlist)
@@ -111,7 +111,7 @@ if strcmp(cfg.phase,'preprocessing')
             case 12
                 % can specify which label to move (asuming neuropythy
                 % labels exist)
-                 vis_volumeCoregistration(cfg.bidsdir,cfg.subjectlist,'plotLabel','varea')
+                 vis_volumeCoregistration(cfg.bidsdir,cfg.subjectlist,'task',cfg.task,'plotLabel','varea')
 
         end
         fprintf('Finished Step %i \n',step)
@@ -175,9 +175,27 @@ if strcmp(cfg.phase,'laminar')
                 
                 % No localizer used for 
                 
-                calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task',cfg.task,'recalculate',0) % in this context we are fine with having the data once, no need to recalculate
+%                 calc_spm2ndLevel_new(cfg.bidsdir,cfg.subjectlist,'task',cfg.task,'recalculate',0) % in this context we are fine with having the data once, no need to recalculate
+                JKD_spmSmooth(cfg.bidsdir,cfg.subjectlist, 'task','localizer','FWHM',4.0)
+
+                events = collect_events(cfg.bidsdir,cfg.subjectlist{1});
+
+                % we need to find the block onset
+                stimOnsetIX = find(events.message == "stimOnset");
+                onsetIX = diff(events{stimOnsetIX,'block'}) == 1;
+                onsetIX = [1; stimOnsetIX(find([0; onsetIX]))];
+                events.blockOnset = zeros(size(events,1),1);
+                events.blockOnset(onsetIX) = 1; % to mark the onset
+                events.blockOnset(65) = 1
+
+                % take only block onsets :-)
+                events = events(events.blockOnset == 1,:);
+                calc_spm2ndLevel_new(cfg.bidsdir,cfg.subjectlist,events,'task','localizer','TR',3.2, 'conditions',{'orientation','contrast'},'recalculate',1)               
+
                 
-                calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','localizer','recalculate',0) % in this context we are fine with having the data once, no need to recalculate
+                calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
+
+               
                 
                 calc_localizerWeightedFunc(cfg.bidsdir,cfg.subjectlist,'zscore',1,'weight',1,'software2nd','spm')
 
@@ -185,10 +203,10 @@ if strcmp(cfg.phase,'laminar')
             case 0
                 % I put it here, because its output goes into the tvm_layer
                 % folder and is not preprocessing anymore imho
-                calc_createROI(cfg.bidsdir,cfg.subjectlist,'topn',500)
+                calc_createROI(cfg.bidsdir,cfg.subjectlist,'topn',500,'zstat_map',[1:5])
 
             case 1
-                layer_tvmPipeline(cfg.bidsdir,cfg.subjectlist)
+                layer_tvmPipeline(cfg.bidsdir,cfg.subjectlist,'task','WM')
             case 2
                 layer_createSpatialglmX(cfg.bidsdir,cfg.subjectlist)
             case 3

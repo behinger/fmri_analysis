@@ -19,8 +19,8 @@ for SID = 1:length(subjectlist)
 
     
  
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func','*_desc-occipitalcropMeanBias_bold.nii'));
-         
+    p_meanrun = dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func', [subjectlist{SID},'_ses-01_task-',cfg.task,'_desc-occipitalcropMean_bold.nii']));
+        
 
     assert(~isempty(p_meanrun),'could not find mean functional file')
     
@@ -33,6 +33,7 @@ for SID = 1:length(subjectlist)
     configuration = [];
     configuration.i_SubjectDirectory = fullfile(datadir,'derivates');
     configuration.i_ReferenceVolume = fullfile('preprocessing',subjectlist{SID},'ses-01','func',p_meanrun.name);
+% % %     configuration.i_ReferenceVolume =fullfile('../',subjectlist{SID},'ses-01','extra_data', 'flip40_10_masked_bet.nii')
     configuration.i_CoregistrationMatrix = i_corrMat;
     configuration.i_Boundaries = i_boundaries;
     configuration.o_CoregistrationMatrix = o_corrMat;

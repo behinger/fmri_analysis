@@ -11,7 +11,7 @@ for SID = 1:length(subjectlist)
     bidspath      = fullfile(datadir,'%s','%s',subjectlist{SID},'ses-01');
     path_layer= sprintf(bidspath,'derivates','tvm_layers');
     path_preprocessing= sprintf(bidspath,'derivates','preprocessing');
-    path_feat= sprintf(bidspath,'derivates','FSL');
+    path_feat= sprintf(bidspath,'derivates','SPM');
     
     
     if ~exist(fullfile(path_layer,'timecourse','dir'))
@@ -45,7 +45,8 @@ for SID = 1:length(subjectlist)
             str_design{3} = str_design{3}(5:end); %'desc'
             str_func = strsplit(funclist{func_id},'_');
             str_desc = strjoin([str_func(5) str_design(3)],''); % combine description string
-            str = strjoin([str_func(1:4) str_desc str_design(4)],'_'); % get rid of the '_designmat.nii'
+            str = strjoin([str_func(1:4) str_desc str_design(3)],'_'); % get rid of the '_designmat.nii'           
+%             str = strjoin([str_func(1:4) str_desc str_design(4)],'_'); % get rid of the '_designmat.nii'
             
             configuration.o_TimeCourse{curDesign}   = fullfile('timecourse',[str '_timecourse.mat']);
         end

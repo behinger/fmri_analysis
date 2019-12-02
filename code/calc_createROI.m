@@ -2,7 +2,7 @@ function create_weightedROI(datapath,subjectlist,varargin)
 
 cfg = finputcheck(varargin, ...
     {
-    'roi'             'real',   []    [1:3];... % rois from benson17 (V1=1,V2=2,V3=3)
+    'roi'             'real',   []    [1:1];... % rois from benson17 (V1=1,V2=2,V3=3)
     'topn'            'real'     []  0; ... % select top N voxels (0 takes all active)
     'zstat_map',      'real', [],1;... % generate all 3 zstat map functional
     'alpha'             'real' [],0.01;...

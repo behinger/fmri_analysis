@@ -1,6 +1,7 @@
 function vis_volumeCoregistration(bidsdir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
-    { 'plotLabel','string',[],''
+    {'task','string',[],'WM' 
+    'plotLabel','string',[],''
     });
 if ischar(cfg)
     error(cfg)
@@ -8,11 +9,9 @@ end
 
 
 
-
-
 for s = subjectlist
     bidspath = fullfile(bidsdir,'derivates','preprocessing',s{1},'ses-01');
-    command = ['fsleyes ' fullfile(bidspath,'func','*occipitalcropMeanBias_bold.nii') ...
+    command = ['fsleyes ' fullfile(bidspath,'func',[s{1},'_ses-01_task-',cfg.task,'_desc-occipitalcropMean_bold.nii']) ...
         ' ' fullfile(bidspath,'anat','*FUNCCROPPED_T1w.nii')];
     if ~isempty(cfg.plotLabel)
         command = [command ' ' fullfile(bidspath,'label',sprintf('*desc-%s_*FUNCCROPPED_label.nii',cfg.plotLabel))];

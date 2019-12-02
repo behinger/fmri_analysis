@@ -6,7 +6,7 @@ plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-
 
 plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_mode-surface','axis','z','task','WM')
 plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface','axis','z','task','WM')
-plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','WM')
+% plot_surfaceCoregistration(bidsdir,subjectlist{1},'boundary_identifier','%s_ses-01_from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface','axis','z','task','WM')
 %                 Step9_visualiseRecursiveRegistration(bidsdir,subjectlist,'slicelist',23,'boundary_identifier','Anat2FuncBoundaries_recurs_sam','functional_identifier','meanWM_run1_sam.nii')
 
 % 
