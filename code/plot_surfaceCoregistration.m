@@ -20,6 +20,7 @@ configuration = [];
 subjectDirectory = fullfile(datadir, SID);
 subjectDirectory = fullfile(datadir,'derivates','preprocessing',SID,'ses-01');
 functional = spm_vol(fullfile(subjectDirectory, 'func',cfg.functional_identifier));
+functional = spm_vol(fullfile(subjectDirectory, 'anat',[SID,'_ses-01_desc-IrEPImasked_space-FUNCCROPPED.nii']));
 configuration.i_Volume = spm_read_vols(functional);
 %dimension = 1;
 configuration.i_Axis = cfg.axis;
