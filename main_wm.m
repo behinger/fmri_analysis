@@ -5,6 +5,23 @@
 % same set of functions :-)
 % Let us try not to break everything :S
 
+% COMMENTS ON ANALYSIS 
+
+% sub-001 visual cortex mask not 100% aligned it seeems. Because of strange
+% occ lobe.
+
+
+% sub-004 and sub-003 cannot be aligned (for now)
+
+
+% sub-012 localizer and WM1 seem to not be perfectly aligned (motion
+% corrected)
+
+% sub-013 mode surface looks better (same with 004)CANT COREGISTER PROPERLY
+
+ 
+
+
 try
     run('code/setup_paths') % init paths and stuff
 end
@@ -16,7 +33,7 @@ cfg.project = 'WM';
 cfg.bidsdir = fullfile('/','project','3018012.20','data','bids');
 cfg.scriptdir = fullfile(pwd,'code');
 
-cfg.subjectlist = {'sub-92'};
+cfg.subjectlist = {'sub-003'};
 cfg.task = 'WM';
 
 % Add some donders-grid things
@@ -45,7 +62,11 @@ cfg.step = 9; %visually check corregistration of boundaries
 %XXX Todo: Visually check realignment using "theplot"
 
 cfg.step = [2 4]
-
+%%
+[~,out] = system([cfg.loopeval,'./calc_IREPI.sh'],'-echo');
+calc_IREPI_modifyContrast(cfg.bidsdir,cfg.subjectlist)
+% calc_IREPI_toFuncCropped(cfg.bidsdir,cfg.subjectlist)
+[~,out] = system([cfg.loopeval,'./calc_IREPI_realign.sh'],'-echo');
 %% Phase 1
 if strcmp(cfg.phase,'preprocessing')
     % path modifications
@@ -58,9 +79,9 @@ if strcmp(cfg.phase,'preprocessing')
                 % recon-all to segment
                 for SID =cfg.subjectlist
                     %locally
-                    [~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh'],'-echo');
+%                     [~,out] = system([cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh'],'-echo');
                     % runs parrallel with freesurfer 6
-%                     [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh''' cfg.gridpipe_long_4cpu],'-echo'); 
+                    [~,out] = system(['echo ''' cfg.loopeval 'export SID="' SID{1} '";./calc_freesurfer_reconAll.sh''' cfg.gridpipe_long_4cpu],'-echo'); 
                 end
             case 3
                 % crop the occipital cortex
@@ -71,11 +92,14 @@ if strcmp(cfg.phase,'preprocessing')
                 % SPM linear realign of functional scans to mean functional
                 % scan. Output mean nifti
                 calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist,'funcidentifier','*desc-occipitalcrop_bold.nii')
+%                 calc_realignFunctionals(cfg.bidsdir,cfg.subjectlist,'funcidentifier','*_bold.nii')
+
             case 5
                 % Rough alignment of mp2rage anatomical to mean functional
                 calc_alignFreesurferToFunc(cfg.bidsdir,cfg.subjectlist,'task',cfg.task)                               
                 
             case 6
+                
                 [~,out] = system([cfg.loopeval,'./calc_biascorrectMeanFunc.sh'],'-echo');
 
                 % Boundary / Gradient based Surface / Volume alignment
@@ -98,7 +122,7 @@ if strcmp(cfg.phase,'preprocessing')
                 
                 
               case 10
-                % [~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaFullFunc.sh'],'-echo');
+%                 [~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaFullFunc.sh'],'-echo');
                  
                  % if not available go over cropped Anatomical
                  [~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaAnatCrop.sh'],'-echo');
@@ -107,6 +131,8 @@ if strcmp(cfg.phase,'preprocessing')
             case 11
                 [~,out] = system([cfg.loopeval './calc_createRetinotopyFromAtlas.sh'],'-echo');
                 [~,out] = system([cfg.loopeval './calc_visualLabelToFunc.sh'],'-echo');
+                %Changed inToRef from ANAT to FUNCCROP TO ANATCROP to
+                %FUNCCROP
                 
             case 12
                 % can specify which label to move (asuming neuropythy
@@ -178,6 +204,7 @@ if strcmp(cfg.phase,'laminar')
 %                 calc_spm2ndLevel_new(cfg.bidsdir,cfg.subjectlist,'task',cfg.task,'recalculate',0) % in this context we are fine with having the data once, no need to recalculate
                 JKD_spmSmooth(cfg.bidsdir,cfg.subjectlist, 'task','localizer','FWHM',4.0)
 
+                GeneratingEventsm(cfg.subjectlist{1}); 
                 events = collect_events(cfg.bidsdir,cfg.subjectlist{1});
 
                 % we need to find the block onset
@@ -190,6 +217,10 @@ if strcmp(cfg.phase,'laminar')
 
                 % take only block onsets :-)
                 events = events(events.blockOnset == 1,:);
+                
+                %sanity check whether events and beh events are the same
+                sanity_check_events(cfg.subjectlist{1},events)
+                
                 calc_spm2ndLevel_new(cfg.bidsdir,cfg.subjectlist,events,'task','localizer','TR',3.2, 'conditions',{'orientation','contrast'},'recalculate',1)               
 
                 
@@ -216,3 +247,11 @@ if strcmp(cfg.phase,'laminar')
         fprintf('Finished Step %i \n',step)
     end
 end
+
+%first number - subejct name with 00s, second number sub name without zeros, numWM, numloc
+ContrastAnalysis(cfg.subjectlist{1},5,2); %change the order of runs
+ContrastAnalysis_angles(cfg.subjectlist{1},6,2)
+WManalysis_new(cfg.subjectlist{1},2,2); 
+%the 45 and 135 are reversed now
+
+
