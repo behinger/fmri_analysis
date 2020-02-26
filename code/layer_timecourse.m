@@ -42,13 +42,20 @@ for SID = 1:length(subjectlist)
             
             % filename
             str_design = strsplit(designlist{curDesign},'_');
-            str_design{3} = str_design{3}(5:end); %'desc'
-            str_func = strsplit(funclist{func_id},'_');
-            str_desc = strjoin([str_func(5) str_design(3)],''); % combine description string
-            str = strjoin([str_func(1:4) str_desc str_design(3)],'_'); % get rid of the '_designmat.nii'           
-%             str = strjoin([str_func(1:4) str_desc str_design(4)],'_'); % get rid of the '_designmat.nii'
+            str_design = str_design(1:[end-1]);
+            str = strjoin(str_design,'_');
+            str_design_func = strsplit(funclist{func_id},'_');
+            str_design_func = str_design_func(3:[end-1]); 
+            str_func = strjoin(str_design_func,'_')
             
-            configuration.o_TimeCourse{curDesign}   = fullfile('timecourse',[str '_timecourse.mat']);
+            
+%             str_design{3} = str_design{3}(5:end); %'desc'
+%             str_func = strsplit(funclist{func_id},'_');
+%             str_desc = strjoin([str_func(5) str_design(3)],''); % combine description string
+%             str = strjoin([str_func(1:4) str_desc str_design(3)],'_'); % get rid of the '_designmat.nii'           
+%             str = strjoin([str_func(1:4) str_desc str_design(4)],'_'); % get rid of the '_designmat.nii'
+%             
+            configuration.o_TimeCourse{curDesign}   = fullfile('timecourse',[str,'_',str_func,'_timecourse.mat']);
         end
         
         tvm_designMatrixToTimeCourse(configuration);
