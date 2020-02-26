@@ -18,10 +18,10 @@ end
 % they are fine...
 realignmentConfiguration = [];
 realignmentConfiguration.quality = cfg.quality;
-realignmentConfiguration.sep = 1;
+realignmentConfiguration.sep = 1; %original: 1 - had 0.4
 realignmentConfiguration.rtm = 1;
 realignmentConfiguration.interp = 4;
-realignmentConfiguration.fwhm = 1;
+realignmentConfiguration.fwhm = 1;  %ORIGINAL: 1 - had 0.4
 
 for SID = 1:length(subjectlist)
     niftis = dir(fullfile(datadir,'derivates',cfg.derivatesubfolder,subjectlist{SID},'ses-01','func',cfg.funcidentifier));

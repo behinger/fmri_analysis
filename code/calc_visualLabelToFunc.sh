@@ -19,6 +19,7 @@ echo 'Moving Visual Labels to Funccropped'
 #ref='./func/'$SID'_ses-01_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii'
 ref='./func/'$SID'_ses-01_task-'$task'_desc-occipitalcropMeanBias_bold.nii'
 inToRef='./coreg/'$SID'_ses-01_from-ANAT_to-FUNCCROPPED.mat'
+#inToRef='./coreg/'$SID'_ses-01_from-ANATCROPPED_to-FUNCCROPPED.mat'
 
 
 for label in 'varea' 'eccen' 'sigma' 'angle'

@@ -21,8 +21,8 @@ for SID = subjectlist
     SID = SID{1};
     
     
-%     niftis = [dir(fullfile(bidsdir,'derivates','preprocessing',SID,'ses-01','func',sprintf('*task-%s*run-*Realign_bold.nii',cfg.task)))];
-    niftis = [dir(fullfile(bidsdir,'derivates','preprocessing',SID,'ses-01','func',sprintf('ssub-92_ses-01_task-%s*run-*Realign_bold.nii',cfg.task)))];
+    niftis = [dir(fullfile(bidsdir,'derivates','preprocessing',SID,'ses-01','func',sprintf('*task-%s*run-*Realign_bold.nii',cfg.task)))];
+%     niftis = [dir(fullfile(bidsdir,'derivates','preprocessing',SID,'ses-01','func',sprintf('sub-92_ses-01_task-%s*run-*Realign_bold.nii',cfg.task)))];
     
     %% generate condition
     conditionLevels = [];
@@ -98,7 +98,10 @@ for SID = subjectlist
                     end
                     
                     fmri_spec.sess(run).cond(end).onset =  onsets;
-                    fmri_spec.sess(run).cond(end).duration = repmat(8,size(fmri_spec.sess(run).cond(end).onset));
+                    fmri_spec.sess(run).cond(end).duration = repmat(12.8,size(fmri_spec.sess(run).cond(end).onset));
+                    % Duration in seconds? Since onset is in seconds -
+                    % would make no sense to have two different measurement
+                    % units
                     fmri_spec.sess(run).multi_reg = {fullfile(niftis(run).folder,'../','motion',sprintf('%s_ses-01_task-%s_run-%i_from-run_to-mean_motion.txt',SID,cfg.task,run))};
                     fmri_spec.sess(run).scans = {fullfile(niftis(run).folder,niftis(run).name)};
                     
@@ -107,6 +110,7 @@ for SID = subjectlist
             
             
         else
+            error()
             fmri_spec.sess.cond.name = 'Stimulus';
             fmri_spec.sess.cond.onset =  events{events.run== run_ix & events.message=="stimOnset"&events.trial==1,'onset'}';
             fmri_spec.sess.cond.duration = repmat(16,size(fmri_spec.sess.cond.onset));

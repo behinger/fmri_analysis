@@ -11,15 +11,16 @@ end
 for SID = 1:length(subjectlist)
     % Relaignment configuration - using settings from petkok's code, assuming
     % they are fine...
-    realignmentConfiguration.ReverseContrast       = true;
-    realignmentConfiguration.ContrastMethod        = 'gradient';
-    realignmentConfiguration.OptimisationMethod    = 'centred';%'GreveFischl';%'centred';
+    realignmentConfiguration.ReverseContrast       = false; % XXX was true
+    realignmentConfiguration.ContrastMethod        = 'gradient'; 
+    realignmentConfiguration.OptimisationMethod    = 'centred';%'GreveFischl';%'centred'; 
     realignmentConfiguration.Mode                  = 'rts';
     realignmentConfiguration.Display              	= 'on';
 
     
  
-    p_meanrun = dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func', [subjectlist{SID},'_ses-01_task-',cfg.task,'_desc-occipitalcropMean_bold.nii']));
+    %    p_meanrun = dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func', [subjectlist{SID},'_ses-01_task-',cfg.task,'_desc-occipitalcropMean_bold.nii']));
+    p_meanrun = dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','anat', [subjectlist{SID},'_ses-01_desc-IrEPImasked_space-FUNCCROPPED.nii']));
         
 
     assert(~isempty(p_meanrun),'could not find mean functional file')
@@ -32,7 +33,7 @@ for SID = 1:length(subjectlist)
     
     configuration = [];
     configuration.i_SubjectDirectory = fullfile(datadir,'derivates');
-    configuration.i_ReferenceVolume = fullfile('preprocessing',subjectlist{SID},'ses-01','func',p_meanrun.name);
+    configuration.i_ReferenceVolume = fullfile('preprocessing',subjectlist{SID},'ses-01','anat',p_meanrun.name);
 % % %     configuration.i_ReferenceVolume =fullfile('../',subjectlist{SID},'ses-01','extra_data', 'flip40_10_masked_bet.nii')
     configuration.i_CoregistrationMatrix = i_corrMat;
     configuration.i_Boundaries = i_boundaries;
@@ -40,9 +41,7 @@ for SID = 1:length(subjectlist)
     configuration.o_Boundaries = o_boundaries;
 
 %     tvm_useBbregister XXX
-    warning('I might want to switch to BBregister here!')
     tvm_boundaryBasedRegistration(configuration,realignmentConfiguration);
-
    
     % Write coregistration matrix to text file so we can use it with flirt
     % (didn't use this for anything, in the end - samlaw)

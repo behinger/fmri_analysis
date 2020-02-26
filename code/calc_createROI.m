@@ -5,7 +5,7 @@ cfg = finputcheck(varargin, ...
     'roi'             'real',   []    [1:1];... % rois from benson17 (V1=1,V2=2,V3=3)
     'topn'            'real'     []  0; ... % select top N voxels (0 takes all active)
     'zstat_map',      'real', [],1;... % generate all 3 zstat map functional
-    'alpha'             'real' [],0.01;...
+    'alpha'             'real' [],0.1;... %what if I increase the alpha... ORIGINAL: 0.01. Is this Bonferonni?
     'software2nd',    'string', {'spm','fsl'}, 'spm';...
     
     });
@@ -14,7 +14,8 @@ if ischar(cfg)
     error(cfg)
 end
 roinames = {'V1','V2','V3','hV4','VO1','VO2','LO1','LO2','TOI1','TO2','V3b','V3a'}; % after benson17
-
+alpha_string = num2str(cfg.alpha);
+alpha_string = strrep(alpha_string,'.','');
 
 for SID = 1:length(subjectlist)
     disp(['Processing ', subjectlist{SID}]);
@@ -43,8 +44,10 @@ for SID = 1:length(subjectlist)
 
             niftiheader = niftiinfo(fullfile(path_2nd, 'GLM','run-all',sprintf('spmT_%04i.nii',zstat)));
             % SPM has a good header
-            zmapName = strsplit(niftiheader.Description,':');
-            zmapName = zmapName{2};
+%             zmapName = strsplit(niftiheader.Description,':');
+%             zmapName = zmapName{2};
+            zmapName = niftiheader.Description(30:end) % new addition to get rid of the space
+            zmapName = strrep(zmapName,'.',''); 
         end
         
         
@@ -68,7 +71,15 @@ for SID = 1:length(subjectlist)
             
             roi_act = activeVoxels(:) .* mask_roi(:);
             roi_act = reshape(roi_act,size(mask_roi));
-            save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%sThresh',zmapName) num2str(cfg.alpha) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
+%             timecourse = roi_act
+            filename = [bidsfilename,'desc-localizer_Thresh_alpha-',alpha_string,'_',zmapName,'_roi-',roinames{roi},'_mask']; % sub,ses,task,run,
+            % filename = [bidsfilename,'desc-localizer',zmapName,'Topvoxels',num2str(cfg.topn),'_roi-',roinames{roi} '_mask']; % sub,ses,task,run,
+            
+            outFile = fullfile(path_layer,'mask', filename);
+            niftiheader_save = niftiheader;
+            niftiheader_save.Filename = outFile;
+            niftiwrite(single(roi_act),outFile,niftiheader)
+%             save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%sThresh',zmapName) num2str(cfg.alpha) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
             
             if cfg.topn ~= 0
                 
@@ -86,8 +97,13 @@ for SID = 1:length(subjectlist)
                 end
                 
                 assert(n_activevoxel<=cfg.topn)
-                save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%s',zmapName) 'Topvoxels' num2str(cfg.topn) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
-                
+%                 save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%s',zmapName) 'Topvoxels' num2str(cfg.topn) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
+%                 timecourse = roi_act
+                filename = [bidsfilename,'desc-localizer_Topvoxels-',num2str(cfg.topn),'_',zmapName,'_roi-',roinames{roi} '_mask']; % sub,ses,task,run,
+                outFile = fullfile(path_layer,'mask', filename);
+                niftiheader_save = niftiheader;
+                niftiheader_save.Filename = outFile;
+                niftiwrite(single(roi_act),outFile,niftiheader)
                 
             end
         end
@@ -97,12 +113,12 @@ for SID = 1:length(subjectlist)
 end
 
 
-    function save_nii_local(timecourse,filename)
-        
-        outFile = fullfile(path_layer,'mask', filename);
-        niftiheader_save = niftiheader;
-        niftiheader_save.Filename = outFile;
-        niftiwrite(single(timecourse),outFile,niftiheader)
-    end
+% %     function save_nii_local(timecourse,filename)
+% %         
+% %         outFile = fullfile(path_layer,'mask', filename);
+% %         niftiheader_save = niftiheader;
+% %         niftiheader_save.Filename = outFile;
+% %         niftiwrite(single(timecourse),outFile,niftiheader)
+% %     end
 
 end
