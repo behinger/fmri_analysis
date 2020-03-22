@@ -1,5 +1,5 @@
 function events = collect_events(datadir,SID)
-searchPath = fullfile(datadir,SID,'ses-01','func','*run-*events.tsv');
+searchPath = fullfile(datadir,SID,'ses-01','func','*run-*.tsv');
 eventFiles = [dir(searchPath)];
 if isempty(eventFiles)
     warning('no files found in %s, return empty',searchPath)

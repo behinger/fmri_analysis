@@ -22,7 +22,6 @@ for SID = subjectlist
     [uniqueNames,~,uniqueIX] = unique(predictorNames);
     
     % go through all predictors and extract the conditions
-    splitConditions = [];
     splitFactor = [];
     for p = 1:length(uniqueNames)
         splitBasisFunction = strsplit(predictorNames{p},'*');
@@ -57,6 +56,11 @@ for SID = subjectlist
                 contrastLookup = [1 1 -2;
                     1 -2 1
                     -2 1 1];
+            case 6
+                contrastLookup = [1 1 1 1 1 -6];
+            otherwise
+                error('no fancy contrasts implemented :shrug:')
+                
                 
         end
         for c = 1:(size(contrastLookup,1))

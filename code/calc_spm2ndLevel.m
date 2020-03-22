@@ -94,7 +94,14 @@ for SID = subjectlist
                     end
                     
                     fmri_spec.sess(run).cond(end).onset =  onsets;
-                    fmri_spec.sess(run).cond(end).duration = repmat(8,size(fmri_spec.sess(run).cond(end).onset));
+                    if ~any(strcmp('duration',events.Properties.VariableNames))
+                        fmri_spec.sess(run).cond(end).duration =     repmat(8,size(fmri_spec.sess(run).cond(end).onset));
+                        warning('default duration of 8s assumed! please fill in events.duration')
+                    else
+                        fmri_spec.sess(run).cond(end).duration = events{ix,'duration'};
+                    end
+                        
+                    
                     fmri_spec.sess(run).multi_reg = {fullfile(niftis(run).folder,'../','motion',sprintf('%s_ses-01_task-%s_run-%i_from-run_to-mean_motion.txt',SID,cfg.task,run))};
                     fmri_spec.sess(run).scans = {fullfile(niftis(run).folder,niftis(run).name)};
                     
