@@ -1,9 +1,9 @@
-function [] = calc_spmContrast(bidsdir,subjectlist)
+function [] = calc_spmContrast(bidsdir,subjectlist,task)
 assert(iscell(subjectlist))
 
 for SID = subjectlist
     
-    spmdatadir = fullfile(bidsdir,'derivates','spm',SID{1},'ses-01','GLM','run-all');
+    spmdatadir = fullfile(bidsdir,'derivates','spm',SID{1},'ses-01','GLM',task);
     tmp = load(fullfile(spmdatadir,'SPM.mat'));
     SPM = tmp.SPM;
     % now we have to recover the column names
@@ -52,11 +52,16 @@ for SID = subjectlist
         [uniqueLevels,~,levelIX] = unique(levels);
         switch length(uniqueLevels)
             case 2
-                contrastLookup = [1 -1];
+                contrastLookup = [1 -1;
+                                  -1 1];
             case 3
                 contrastLookup = [1 1 -2;
                     1 -2 1
                     -2 1 1];
+            case 4 
+                contrastLookup = [0.5  0.5 0 0;
+                                  1 -1 0 0;
+                                  0 0 1 0;];
                 
         end
         for c = 1:(size(contrastLookup,1))

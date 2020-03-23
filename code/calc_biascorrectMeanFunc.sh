@@ -23,20 +23,15 @@ echo 'Fast correcting functional image...'
 # This is run to get the bias correct image (I imagine)
                                                                                                                   
 
-inputFile='./'$SID'_ses-01_task-'$task'_desc-occipitalcropMean_bold.nii'
-outputFile='./'$SID'_ses-01_task-'$task'_desc-occipitalcropMeanBias_bold.nii'
+inputFile='./'$SID'_ses-01_desc-occipitalcropMean_bold.nii'
+outputFile='./'$SID'_ses-01_desc-occipitalcropMeanBias_bold.nii'
 
 echo $PWD
 echo $inputFile
 echo $outputFile
 fast -t 2 -n 2 -H 0.1 -I 4 -l 20.0 --nopve -B -o $outputFile $inputFile
-mv './'$SID'_ses-01_task-'$task'_desc-occipitalcropMeanBias_bold_restore.nii.gz' './'$SID'_ses-01_task-'$task'_desc-occipitalcropMeanBias_bold.nii.gz'
-gunzip './'$SID'_ses-01_task-'$task'_desc-occipitalcropMeanBias_bold.nii.gz'
-rm './'$SID'_ses-01_task-'$task'_desc-occipitalcropMeanBias_bold_seg.nii.gz'
+mv './'$SID'_ses-01_desc-occipitalcropMeanBias_bold_restore.nii.gz' './'$SID'_ses-01_desc-occipitalcropMeanBias_bold.nii.gz'
+gunzip './'$SID'_ses-01_desc-occipitalcropMeanBias_bold.nii.gz'
+rm './'$SID'_ses-01_desc-occipitalcropMeanBias_bold_seg.nii.gz'
 done
     
-#fast -t 2 -n 2 -H 0.1 -I 4 -l 20.0 --nopve -B -o './'$SID'_ses-01_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii' './'$SID'_ses-01_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMean_bold.nii'
-#mv './'$SID'_ses-01_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold_restore.nii.gz' './'$SID'_ses-01_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii.gz'
-#gunzip './'$SID'_ses-01_task-'$task'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold.nii.gz'
-##rm ./'$SID'_ses-01_task-'$TASK'_acq-rsep3d08mmipat4x2partialbrain_desc-occipitalcropMeanBias_bold_seg.nii.gz
-#done

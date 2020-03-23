@@ -75,10 +75,12 @@ for SID = 1:length(subjectlist)
     [filepath,filename]=fileparts(niftis{1});
     splitFilename = strsplit(filename,'_');
     desc_ix = find(cellfun(@(x)~isempty(x),strfind(splitFilename,'desc-')));
+    task_ix = find(cellfun(@(x)~isempty(x),strfind(splitFilename,'task-')));
     run_ix = find(cellfun(@(x)~isempty(x),strfind(splitFilename,'run-')));
     
     splitFilename{desc_ix} = [splitFilename{desc_ix} 'Mean'];
     splitFilename(run_ix) = []; % delete the run information, its meaningless anyway for meanrun
+    splitFilename(task_ix) = []; % delete the task information, its meaningless anyway for meanrun
     meanFile = fullfile(filepath,['mean' filename '.nii']);
     assert(exist(meanFile,'file')==2);
     movefile(meanFile,fullfile(filepath,[strjoin(splitFilename,'_') '.nii']));

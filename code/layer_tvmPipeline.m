@@ -32,7 +32,7 @@ for SID = 1:length(subjectlist)
     configuration.i_SubjectDirectory = bidspath;
     configuration.i_Boundaries       = fullfile(rel_preprocces,'coreg',[bidsfilename 'from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface.mat']);
     
-    configuration.i_ReferenceVolume  = fullfile(rel_preprocces,'func', [bidsfilename sprintf('task-%s_desc-occipitalcropMeanBias_bold.nii',cfg.task)]);
+    configuration.i_ReferenceVolume  = fullfile(rel_preprocces,'func', [bidsfilename sprintf('desc-occipitalcropMeanBias_bold.nii')]);
 %     configuration.i_ObjWhite         = fullfile(rel_freesurfer,'surf','?h.white.reg.obj');
 %     configuration.i_ObjPial          = fullfile(rel_freesurfer,'surf','?h.pial.reg.obj');
     

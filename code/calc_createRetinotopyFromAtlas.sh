@@ -14,13 +14,13 @@ module load anaconda3 # donders infrastructure
 #source activate /project/3018028.04/benehi/$task/venv_sequence
 
 # This is the pythoneseque way of doing it I guess :D
-echo 'Ignore the following errors:'
+echo 'Ignore the following errors (trying to find correct environment try/error):'
 source activate fmri
 
 source activate /home/predatt/jondeg/.conda/envs/fmri
 
 
-echo 'dont ignore the following errors:'
+echo 'dont ignore the following errors (if there are any):'
 
 # for old venv
 # source $bidsdir/../../../venv/bin/activate
@@ -44,5 +44,5 @@ mri_convert --reslice_like mri/rawavg.mgz mri/benson14_angle.mgz '../../../prepr
 mri_convert --reslice_like mri/rawavg.mgz mri/benson14_eccen.mgz '../../../preprocessing/'$SID'/ses-01/label/'$SID'_ses-01_desc-eccen_space-ANAT_label.nii' --resample_type nearest -ns 1
 mri_convert --reslice_like mri/rawavg.mgz mri/benson14_sigma.mgz '../../../preprocessing/'$SID'/ses-01/label/'$SID'_ses-01_desc-sigma_space-ANAT_label.nii' --resample_type nearest -ns 1
 
-
+done
 

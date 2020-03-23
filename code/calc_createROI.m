@@ -1,4 +1,4 @@
-function create_weightedROI(datapath,subjectlist,varargin)
+function calc_createROI(datapath,subjectlist,varargin)
 
 cfg = finputcheck(varargin, ...
     {
@@ -68,7 +68,7 @@ for SID = 1:length(subjectlist)
             
             roi_act = activeVoxels(:) .* mask_roi(:);
             roi_act = reshape(roi_act,size(mask_roi));
-            save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%sThresh',zmapName) num2str(cfg.alpha) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
+            save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%sThresh',zmapName) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
             
             if cfg.topn ~= 0
                 

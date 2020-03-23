@@ -19,10 +19,10 @@ echo $bids
 pA=$(find $bidsdir'/'$SID'/ses-01/anat/'| grep _T1w.nii)
 pAc='./anat/'$bids'_desc-occipitalcrop_T1w.nii'
 pAcBias='./anat/'$bids'_desc-occipitalcropBet_T1w.nii.gz'
-pFc='./func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_bold.nii'
+pFc='./func/'$bids'_desc-occipitalcropMeanBias_bold.nii'
 
-pFc_in_Ac='./func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_space-ANATCROPPED_bold.nii'
-pFc_in_A='./func/'$bids'_task-'$task'_desc-occipitalcropMeanBias_space-ANAT_bold.nii'
+pFc_in_Ac='./func/'$bids'_desc-occipitalcropMeanBias_space-ANATCROPPED_bold.nii'
+pFc_in_A='./func/'$bids'_desc-occipitalcropMeanBias_space-ANAT_bold.nii'
 pAc_in_A='./anat/'$bids'_desc-occipitalcrop_space-ANAT_T1w.nii'
 pAc_in_Fc='./anat/'$bids'_desc-occipitalcrop_space-FUNCCROPPED_T1w.nii'
 pA_in_Fc='./anat/'$bids'_desc-anatomical_space-FUNCCROPPED_T1w.nii'
@@ -38,7 +38,7 @@ echo 'Aligning functional image to cropped anatomy...'
 flirt -in  $pFc \
       -ref $pAcBias \
       -out $pFc_in_Ac \
-      -omat './coreg/'$bids'_from-FUNCCROPPED_to-ANATCROPPED.mat' -cost corratio  -dof 12 -interp trilinear -searchrx -10 10 -searchry -10 10 -searchrz -10 10
+      -omat './coreg/'$bids'_from-FUNCCROPPED_to-ANATCROPPED.mat' -cost corratio  -dof 12 -interp trilinear #-searchrx -10 10 -searchry -10 10 -searchrz -10 10
 gunzip -f $pFc_in_Ac'.gz'
 
 ### croppedAnat to croppedFun ###

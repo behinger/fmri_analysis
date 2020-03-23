@@ -10,7 +10,7 @@ function calc_cropOccipital(datadir,SID,t_sub)
 
 
 % Nifti files to process
-niftis = [%dir(fullfile(datadir,SID,'ses-01','func','*_bold.nii'))
+niftis = [dir(fullfile(datadir,SID,'ses-01','func','*_bold.nii'))
           dir(fullfile(datadir,SID,'ses-01','anat','*_T1w.nii'))];
 
 
@@ -46,8 +46,10 @@ for curNifti = 1:length(niftis)
         
         splitFilename = strsplit(niftis(curNifti).name,'_');
         if strcmp(anatOrFunc,'anat')
+            shiftBy = [t_sub.anat{1}(1) t_sub.anat{2}(1) t_sub.anat{3}(1)];
             runix = 2;
         else
+            shiftBy = [1 1 1];
             runix = find(cellfun(@(x)~isempty(x),strfind(splitFilename,'run'))); % we want to keep only the BIDS name until run
         end
             
@@ -61,7 +63,7 @@ for curNifti = 1:length(niftis)
         
         % this ensures that both images are in the same space and we do not
         % need realignment :-)
-        shiftBy = [t_sub.anat{1}(1) t_sub.anat{2}(1) t_sub.anat{3}(1)];
+        
         newVol.mat(1:3,4) = newVol.mat(1:3,4) + shiftBy'-1;
         % added to preserve the TR timing
         newVol.private.timing = oldVol.private.timing;

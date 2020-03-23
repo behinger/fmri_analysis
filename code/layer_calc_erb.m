@@ -9,6 +9,8 @@ runlist= cellfun(@(x)x{1},runlist,'UniformOutput',0); % get rid of the cells in 
 roilist= regexp(strjoin(funclist),'_roi-(.*?)_','tokens'); % find all rois of all strings, concatenate them before for one liner
 roilist= cellfun(@(x)x{1},roilist,'UniformOutput',0); % get rid of the cells in cells (technicallity)
 
+desclist= regexp(strjoin(funclist),'_desc-(.*?)_','tokens'); % find all rois of all strings, concatenate them before for one liner
+desclist= cellfun(@(x)x{1},desclist,'UniformOutput',0); % get rid of the cells in cells (technicallity)
 %%
 
 times_tr = fromTo(1):ceil(fromTo(2)/TR);
@@ -40,6 +42,7 @@ for runid = 1:length(runlist)
         data_table.layer = repmat(k,size(data_table,1),1);
         data_table.roi= repmat(roilist(runid),size(data_table,1),1);
         data_table.run= repmat(str2num(runlist{runid}),size(data_table,1),1);
+        data_table.desc= repmat(desclist(runid),size(data_table,1),1);
         
         erb_table = [erb_table; data_table];
         

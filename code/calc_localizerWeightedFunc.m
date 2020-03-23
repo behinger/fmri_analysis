@@ -19,7 +19,7 @@ for SID = 1:length(subjectlist)
     if cfg.software2nd == "fsl"
         zmapNii       = niftiread(fullfile(path_2nd,'task-localizer_run-1.feat','stats',sprintf('zstat%i.nii.gz',1)));
     elseif cfg.software2nd == "spm"
-        zmapNii = niftiread(fullfile(path_2nd, 'GLM','run-all','spmT_0001.nii'));
+        zmapNii = niftiread(fullfile(path_2nd, 'GLM','localizer','spmT_0001.nii'));
     end
     
     

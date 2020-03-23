@@ -2,7 +2,7 @@
 % align freesurfer boundaries to functional data
 function calc_cluster_recursiveBoundaryRegistration(datadir,subjectlist,varargin)
 cfg = finputcheck(varargin, ...
-    { 'task','string',[],'sustained'
+    { 'task','string',[],'sustained' % not used
     });
 if ischar(cfg)
     error(cfg)
@@ -23,7 +23,7 @@ for SID = 1:length(subjectlist)
     % they are fine...
     
     
-    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*task-%s*_desc-occipitalcropMean_bold.nii',cfg.task)));
+    p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*_desc-occipitalcropMean_bold.nii')));
 
     assert(~isempty(p_meanrun))
     i_boundaries= fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface.mat']);

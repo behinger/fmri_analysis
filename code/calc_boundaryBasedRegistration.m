@@ -54,4 +54,4 @@ end
 % Export the registrations to freesurfer (using old
                 % functions from Peter Kok)
                 
-calc_createRegisterDat(datadir,subjectlist,varargin{:})
+% calc_createRegisterDat(datadir,subjectlist,varargin{:})

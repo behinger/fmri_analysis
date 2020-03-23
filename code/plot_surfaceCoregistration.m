@@ -7,7 +7,7 @@ cfg = finputcheck(varargin, ...
     'axis',             'string', {'coronal','sagittal','transversal','x','y','z'}, 'z';...
     'method','string',{'2d','movie'},'2d';...
     'boundary_identifier'       'string'     []    'from-ANAT_to-FUNCCROPPED_desc-recursive_mode-surface' ; ...
-    'functional_identifier'     'string'     []    '%s_ses-01_task-%s_desc-occipitalcropMeanBias_bold.nii';
+    'functional_identifier'     'string'     []    '%s_ses-01_desc-occipitalcropMeanBias_bold.nii';
     'task','string',[],'sustained'
     });
 if ischar(cfg)
@@ -17,7 +17,7 @@ end
 subjectDirectory = fullfile(datadir,'derivates','preprocessing',SID,'ses-01');
 
 
-cfg.functional_identifier = sprintf(cfg.functional_identifier,SID,cfg.task);
+cfg.functional_identifier = sprintf(cfg.functional_identifier,SID);
 cfg.boundary_identifier = sprintf(cfg.boundary_identifier,SID);
 boundaryFile = fullfile(subjectDirectory, 'coreg',[cfg.boundary_identifier '.mat']);
 
