@@ -4,6 +4,7 @@ cfg = finputcheck(varargin, ...
     {
     'task'             'string',   {},    [];... % rois from benson17 (V1=1,V2=2,V3=3)
     'TR','real',[],[];
+    'smooth','boolean',[],0;...
     'duration','real',[],[];
     'conditions','cell',[],{'condition','contrast'} % specifies the factorial design
     'recalculate', 'boolean',[],1;... % always recalculate only if not specified otherwise
@@ -50,7 +51,7 @@ for SID = subjectlist
     fmri_spec.dir = cellstr(spmdatadir);
     fmri_spec.timing.units = 'secs';
     fmri_spec.timing.RT= cfg.TR;
-    
+    fmri_spec.bases.hrf.derivs = [1 0]; % temporal derivation
     
     for run = unique(events.run)'
         
@@ -95,7 +96,9 @@ for SID = subjectlist
             fmri_spec.sess(run).cond(end).duration = events{ix,'duration'};
             fmri_spec.sess(run).multi_reg = {fullfile(niftis(run).folder,'../','motion',sprintf('%s_ses-01_task-%s_run-%i_from-run_to-mean_motion.txt',SID,cfg.task,run))};
             fmri_spec.sess(run).scans = {fullfile(niftis(run).folder,niftis(run).name)};
-            
+            fmri_spec.sess(run).hpf = 128;
+               
+
         end
     end
     
@@ -115,10 +118,28 @@ for SID = subjectlist
     if ~exist(spmdatadir,'dir')
         mkdir(spmdatadir);
     end
-    matlabbatch{1} = struct('spm',struct('stats',struct('fmri_spec',fmri_spec)));
+    if cfg.smooth ==1
+    
+    spatial.smooth.data = {fmri_spec.sess(:).scans{:}};
+    for run = 1:length(fmri_spec.sess)
+        for i = 1:length(fmri_spec.sess(run).scans)
+            [fp,fn,ext] = fileparts(fmri_spec.sess(run).scans{i});
+            fmri_spec.sess(run).scans{i} = fullfile(fp,['s_' fn ext]);
+        end
+    end
+    
+    spatial.smooth.fwhm   = [2 2 2];
+    spatial.smooth.dtype  = 0; % output data type = same as input
+    spatial.smooth.im     = 0; % no implicit masking
+    spatial.smooth.prefix = 's_';
+    
+    matlabbatch{end+1} = struct('spm',struct('spatial',spatial));
+    end
+    
+    matlabbatch{end+1} = struct('spm',struct('stats',struct('fmri_spec',fmri_spec)));
     tmp = struct;
     tmp.stats.fmri_est.spmmat = cellstr(fullfile(spmdatadir,'SPM.mat'));
-    matlabbatch{2} = struct('spm',tmp);
+    matlabbatch{end+1} = struct('spm',tmp);
     
     % Generate the designmatrices + Fit them!
     spm_jobman('run',matlabbatch);
