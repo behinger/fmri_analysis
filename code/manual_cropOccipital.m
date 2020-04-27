@@ -1,11 +1,18 @@
-function manual_cropOccipital(bidsdir,subjectlist)
+function manual_cropOccipital(bidsdir,subjectlist,cutYes,redo)
 % Function that will plot the anatomical + functional and allow you to crop
 % them to the occipital cortex.
 % It  will then save them in a cropmarks_occipital.mat file and apply them
 % using calc_cropOccipital
+if nargin<=2
+    cutYes = 1;
+end
+if nargin <=3
+    redo = 0;
+end
 f_cropmark = fullfile(bidsdir,'derivates','preprocessing','cropmarks_occipital.mat');
 
 for SID = subjectlist
+    
     if exist(f_cropmark,'file')
         crop = load(f_cropmark);
         crop = crop.crop;
@@ -14,9 +21,10 @@ for SID = subjectlist
     end
     
     ix = find(strcmp(SID{1},crop.SID));
-    if ~isempty(ix)
+    if ~isempty(ix)  && ~redo
         t_sub = crop(ix,:);
     else
+        
         d = dir(fullfile(bidsdir,SID{1}, 'ses-01','anat',[SID{1} '_ses-01_*_T1w.nii']));
         spm_image('display',fullfile(d.folder,d.name))
         tmp_a = input('Subject not found, adding it to table. Anat {X:X, Y:Y, Z:Z}:');
@@ -28,9 +36,15 @@ for SID = subjectlist
         t_sub = table(SID(1),tmp_a,tmp_f,'VariableNames',{'SID','anat','func'});
         
         % concatenate to already loaded and save changes
+        if redo
+            % in case of redo, delete it first
+            crop(ix,:) = [];
+        end
         crop = [crop; t_sub];
         save(f_cropmark,'crop')
     end
+    if cutYes
     calc_cropOccipital(bidsdir,SID{1},t_sub)
+    end
     
 end
