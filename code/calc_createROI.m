@@ -39,9 +39,9 @@ for SID = 1:length(subjectlist)
             zmapName      = textscan(fopen(fullfile(path_feat,'task-localizer_run-1.feat','design.con')),'%s');
             zmapName  = zmapName{1}{zstat*2};
         elseif cfg.software2nd == "spm"
-            zmapNii     = niftiread(fullfile(path_2nd, 'GLM','run-all',sprintf('spmT_%04i.nii',zstat)));
+            zmapNii     = niftiread(fullfile(path_2nd, 'GLM','localizer',sprintf('spmT_%04i.nii',zstat)));
 
-            niftiheader = niftiinfo(fullfile(path_2nd, 'GLM','run-all',sprintf('spmT_%04i.nii',zstat)));
+            niftiheader = niftiinfo(fullfile(path_2nd, 'GLM','localizer',sprintf('spmT_%04i.nii',zstat)));
             % SPM has a good header
             zmapName = strsplit(niftiheader.Description,':');
             zmapName = zmapName{2};
@@ -54,8 +54,7 @@ for SID = 1:length(subjectlist)
         activeVoxels  = double(zmapNii) > threshold;
         
         
-        % Load Labels
-        labelsNii = niftiread(fullfile(path_preprocessing,'label',[bidsfilename 'desc-varea_space-FUNCCROPPED_label.nii']));
+
         
         % Create Folder in case not existing
         tmp_funcpath = fullfile(path_layer,'mask');
@@ -64,8 +63,11 @@ for SID = 1:length(subjectlist)
         end
         
         for roi = cfg.roi
-            mask_roi = logical(int8(labelsNii) == roi);
-            
+            % Load Labels
+%             labelsNii = niftiread(fullfile(path_preprocessing,'label',[bidsfilename 'desc-varea_space-FUNCCROPPED_label.nii']));
+%             mask_roi = logical(int8(labelsNii) == roi);
+            labelsNii = niftiread(fullfile(path_preprocessing,'label',[bidsfilename 'desc-vareaV' num2str(roi) '_space-FUNCCROPPED_label.nii']));
+            mask_roi = logical(int8(labelsNii)==1);
             roi_act = activeVoxels(:) .* mask_roi(:);
             roi_act = reshape(roi_act,size(mask_roi));
             save_nii_local(roi_act,[bidsfilename sprintf('desc-localizer%sThresh',zmapName) '_roi-' roinames{roi} '_mask']); % sub,ses,task,run,
