@@ -14,17 +14,18 @@ registrationConfiguration = cell(length(subjectlist), 1);
 subjectConfigurations = cell(length(subjectlist), 1);
 
 % Push on grid
-memoryRequirement = 300 * 1024 ^ 2; %300MB
-timeRequirement = 20 * 60; %2 hours
+memoryRequirement = 5 * 1024 ^ 3; %3GB
+timeRequirement = 2*60 * 60; %2 hours
 compilation = 'no';
 
 for SID = 1:length(subjectlist)
+    
     % Relaignment configuration - using settings from petkok's code, assuming
     % they are fine...
     
     
     p_meanrun= dir(fullfile(datadir,'derivates','preprocessing',subjectlist{SID},'ses-01','func',sprintf('*_desc-occipitalcropMean_bold.nii')));
-
+    assert(length(p_meanrun)==1,'either none, or multiple meanruns have beenfound')
     assert(~isempty(p_meanrun))
     i_boundaries= fullfile('preprocessing',subjectlist{SID},'ses-01','coreg',[subjectlist{SID} '_ses-01_from-ANAT_to-FUNCCROPPED_desc-BBR_mode-surface.mat']);
 %     warning(' MODIFIED TO NOT USE BBR BUT SPM SURFACE')

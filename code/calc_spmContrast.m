@@ -15,7 +15,10 @@ for SID = subjectlist
     constant = regexp(names,'^constant$','start');
     constant = cellfun(@(x)~isempty(x),constant);% get rid of cells
     
-    setToZero = constant|motion;
+    deriv= regexp(names,'.*bf\(2\)','start');
+    deriv= cellfun(@(x)~isempty(x),deriv);% get rid of cells
+    
+    setToZero = constant|motion|deriv;
     predictorNames = names(~setToZero);
     
     % Find unique ones
