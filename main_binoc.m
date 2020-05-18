@@ -85,10 +85,7 @@ if strcmp(cfg.phase,'preprocessing')
             case 3
                 % crop the occipital cortex
                 % manual input needed how to best save coordinates for croping to
-                manual_cropOccipital(cfg.bidsdir,cfg.subjectlist,1)
-                
-%                 manual_cropOccipital(cfg.bidsdir,{'sub-02'},1,0)
-                
+                manual_cropOccipital(cfg.bidsdir,cfg.subjectlist,1)                
             case 4
                 % SPM linear realign of functional scans to mean functional
                 % scan. Output mean nifti
@@ -127,32 +124,11 @@ if strcmp(cfg.phase,'preprocessing')
                 vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist(1),'method','movie','axis','coronal')
                 vis_surfaceCoregistration(cfg.bidsdir,cfg.subjectlist(1),'method','movie','axis','sagittal')
                 
-%             case 10
-                
-            case 10
-                % [~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaFullFunc.sh'],'-echo');
-                 
-                 % if not available go over cropped Anatomical
-                 %[~,out] = system([cfg.loopeval './calc_alignAnat2Func_viaAnatCrop.sh'],'-echo');
-%                   [~,out] = system([cfg.loopeval './calc_alignAnat2Func.sh'],'-echo');
-%                     calc_alignAnat2Func(cfg) % we need some algorithm for some subject, other algorithm for other subjects :|
-
             case 11
                  [~,out] = system([cfg.loopeval './calc_createRetinotopyFromAtlas.sh'],'-echo');
-                 calc_alignAnat2Func_viaBBR(cfg.bidsdir,cfg.subjectlist)
-
-                 % SUB 21!
-%                  [~,out] = system([cfg.loopeval './calc_align3TLabel2AnatCrop.sh'],'-echo');
-
-%                 [~,out] = system([cfg.loopeval './calc_visualLabelToFunc.sh'],'-echo');
-                
+                 calc_alignAnat2Func_viaBBR(cfg.bidsdir,cfg.subjectlist)                
             case 12
-                % can specify which label to move (asuming neuropythy
-                % labels exist)
-   
-                
-                
-                
+                 % visualize the result
                  vis_volumeCoregistration(cfg.bidsdir,cfg.subjectlist,'plotLabel',{'varea'})
 
         end
@@ -161,7 +137,7 @@ if strcmp(cfg.phase,'preprocessing')
 end
 
 
-%% Phase 5
+%% Phase Layer
 cfg.step = [0 2 3]
 cfg.phase = 'laminar'
 if strcmp(cfg.phase,'laminar')
@@ -169,7 +145,7 @@ if strcmp(cfg.phase,'laminar')
         fprintf('Running Step %i\n',step)
         switch step
             case -2
-                %%
+                %% Event related SPM analysis
                 for SID  = cfg.subjectlist(1:end)
                 % Event Related analysis
                 events = collect_events(cfg.bidsdir,SID{1});
@@ -182,6 +158,10 @@ if strcmp(cfg.phase,'laminar')
                 
                 calc_spmContrast(cfg.bidsdir,SID,'rivalry')
                 end
+                
+                # After all subjects are run, collect the results in the V1 ROI
+                #1 = calc_spmSummary(cfg.bidsdir,cfg.subjectlist,'rivalry',5)
+                #2 = calc_spmSummary(cfg.bidsdir,cfg.subjectlist,'rivalry',6)
             case -1
                 %% zscore localizer & functionals, and add weighted versions
                 % (weighting might be controversial)
@@ -216,5 +196,4 @@ if strcmp(cfg.phase,'laminar')
     end
 end
 
-t1 = calc_spmSummary(cfg.bidsdir,cfg.subjectlist,'rivalry',5)
-t2 = calc_spmSummary(cfg.bidsdir,cfg.subjectlist,'rivalry',6)
+
