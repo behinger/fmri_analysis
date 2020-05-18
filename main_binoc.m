@@ -149,20 +149,7 @@ if strcmp(cfg.phase,'preprocessing')
             case 12
                 % can specify which label to move (asuming neuropythy
                 % labels exist)
-                
-                % Sub 02 => Cutout too small
-                
-                
-                % sub 07 bad => directly over Anat good results
-                % sub 11 bad => directly over Anat Good results
-                % sub 15 bad
-                % sub 16 bad => Visual cortex is cut off on top
-                % sub 22 bad
-                % sub 23 bad
-                % sub 24 bad
-                % sub 26 bad
-                % sub 27 bad
-                % sub 28 bad
+   
                 
                 
                 
@@ -183,13 +170,15 @@ if strcmp(cfg.phase,'laminar')
         switch step
             case -2
                 %%
-                for SID  = cfg.subjectlist(2:end)
+                for SID  = cfg.subjectlist(1:end)
                 % Event Related analysis
                 events = collect_events(cfg.bidsdir,SID{1});
                 evt_riv = events(events.task == "rivalry",:);
-                calc_spm2ndLevel(cfg.bidsdir,SID,evt_riv,'task','rivalry',...
-                    'TR',3.408,...
-                    'recalculate',1,'conditions',{'condition'}) % in this context we are fine with having the data once, no need to recalculate
+                evt_riv.duration  = evt_riv.onset+3*3.408;
+                evt_riv = evt_riv(evt_riv.condition ~= "no response",:);
+                 calc_spm2ndLevel(cfg.bidsdir,SID,evt_riv,'task','rivalry',...
+                     'TR',3.408,...
+                     'recalculate',1,'conditions',{'condition'}) % in this context we are fine with having the data once, no need to recalculate
                 
                 calc_spmContrast(cfg.bidsdir,SID,'rivalry')
                 end
@@ -226,3 +215,6 @@ if strcmp(cfg.phase,'laminar')
         fprintf('Finished Step %i \n',step)
     end
 end
+
+t1 = calc_spmSummary(cfg.bidsdir,cfg.subjectlist,'rivalry',5)
+t2 = calc_spmSummary(cfg.bidsdir,cfg.subjectlist,'rivalry',6)
