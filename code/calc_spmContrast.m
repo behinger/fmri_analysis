@@ -60,7 +60,9 @@ for SID = subjectlist
             case 3
                 contrastLookup = [1 1 -2;
                     1 -2 1
-                    -2 1 1];
+                    -2 1 1
+                    1 -1 0
+                    -1 1 0];
             case 4 
                 contrastLookup = [0.5  0.5 0 0;
                                   1 -1 0 0;
