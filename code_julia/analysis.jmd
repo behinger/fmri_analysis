@@ -1,0 +1,409 @@
+---
+title: "First analysis"
+author: "Benedikt Ehinger"
+date: 2020-03-31
+options:
+    out_width : 100%
+---
+
+
+```julia
+using StatsModels, MixedModels, DataFrames
+
+using StatsBase
+import unfold
+using DataFramesMeta
+using Plots
+using CSV
+using Statistics
+using JLD2 #library to save stuff
+using StatsPlots # for the @df macro
+using DSP
+
+fsize = 10
+gr(size=(1000,1000),xtickfontsize=fsize*0.8,
+ytickfontsize=fsize*0.8, xguidefontsize=fsize*0.8, yguidefontsize=fsize*1.1,
+ legendfontsize=fsize*2/3, dpi=150,grid = false);
+#gr()
+#plotly()
+#pyplot()
+include("binoc_fitSubject.jl");
+```
+# Load Data & Events
+```julia
+d_dataPath = "local/2020-04-20_16-17_data/"
+e_dataPath = "local/2020-04-20_16-17_events/"
+d_dataPath_dir = readdir(d_dataPath)
+e_dataPath_dir = readdir(e_dataPath)
+dat_files = d_dataPath_dir[endswith.(d_dataPath_dir,"_data.csv")]
+evt_files = e_dataPath_dir[endswith.(e_dataPath_dir,"_events.csv")]
+d_all = CSV.read.(d_dataPath .* dat_files,header=0)
+e_all = CSV.read.(e_dataPath .* evt_files,header=1);
+```
+
+```julia;echo=false
+# If needed, recalculate BOLD model for all subjects and save
+RECALCULATE = false
+if RECALCULATE
+    include("binoc_fitSubject.jl");
+    results_all = DataFrame()
+    results_model = []
+    names_split = [j[1] for j in [split.(k,"_timecourse")[2] for k in split.(dat_files,"_desc-")]]
+    tmp_split = split.(names_split,"_roi-")
+    roi_split = [k[2] for k in tmp_split]
+    tmp_split = split.([k[1] for k in tmp_split]," ")
+    preprocessing_split = [k[1] for k in tmp_split]
+    voxel_split = occursin.("500",[k[end] for k in tmp_split])
+    all_ix  = occursin.("ALL",[k[2] for k in tmp_split])
+    c_ix  = occursin.("1_clockwise",[k[2] for k in tmp_split])
+    cc_ix  = occursin.("-1_clockwise",[k[2] for k in tmp_split])
+    localizer_split = repeat(["ALL"],length(all_ix))
+    localizer_split[c_ix] .= "+c/-cc"
+    localizer_split[cc_ix] .= "-c/+cc"
+
+
+    for f = 1:length(d_all)
+        if (preprocessing_split[f] == "preproc-zscore-localizer") | (voxel_split == 0)
+            continue
+        end
+        println("running $f / $(length(d_all))")
+        for fir = [false true]
+        res_table,res_model = fit_subject(Array(d_all[f]),e_all[f],fir=fir)
+        res_table[:,:fir] .= [string(fir)]
+        res_table[:,:roi] .= roi_split[f]
+        res_table[:,:localizer] .= localizer_split[f]
+        res_table[:,:preprocessing] .= preprocessing_split[f]
+        res_table[:,:voxelselect] .= voxel_split[f]
+        if fir == false
+            res_table.colnames_basis = repeat([0.],size(res_table,1))
+        end
+
+        append!(results_all,res_table)
+        append!(results_model,vcat.(res_model,Ref(f),Ref(dat_files[f]),Ref(e_all[f]),Ref(fir)))
+    end
+    end
+    CSV.write("local/2020-05-06_results.csv",results_all)
+    @save "local/2020-05-06_model.jld2" results_model
+else
+    results_all = CSV.read("local/2020-05-06_results.csv");
+    @load "local/2020-05-06_model.jld2" results_model
+end;
+```
+
+# Analyse behaviour
+Most event switching times are very short. This is even after cleaning for small lapses in Sam's button-recording (Sam did not have this fix implemented, this increased many durations a lot)
+```julia
+# select each dataset only once
+
+ix = [join(x[5:8]) for x in split.(dat_files,"_")] .== "desc-preproc-zscore-localizer -1clockwise+1counter clockwiseThreshroi-V1"
+evt = vcat(e_all[ix]...)
+evt = evt[evt.task .== "rivalry",:]
+
+# +0.1 because we have like one duration with 0, and somehow it tripps the plotting tool
+@df evt dotplot(:condition,:duration.+0.1,markersize=1,markerstrokecolor=nothing,yscale=:log10)
+```
+Note that there are some trials where the duration is very large. E.g. >20s! It is possible that these are outliers, but also possible to be veridical.
+
+```julia
+#@df evt dotplot(:condition,:duration.+0.1,markersize=1,markerstrokecolor=nothing)
+
+@df evt[evt.condition.=="mixed",:]             dotplot( :subject,:duration, marker=(:green,1,0.5,stroke(0)), label="mixed",yscale=:log10)
+@df evt[evt.condition.=="clockwise",:]         dotplot!(:subject,:duration, side=:right, marker=(:blue,1,1,stroke(0)), label="clockwise",yscale=:log10)
+@df evt[evt.condition.=="counter clockwise",:] dotplot!(:subject,:duration, side=:left, marker=(:red,1,1,stroke(0)), label="counter-clockwise",yscale=:log10)
+```
+And in numbers, median & mean duration:
+```julia
+@linq evt |>
+        groupby([:condition,:subject])|>
+        based_on(med=median(:duration),mean=mean(:duration))|>
+        groupby(:condition)|>
+        based_on(m_mean = mean(:mean),sd_mean=std(:mean),m_med=mean(:med),sd_med=std(:med))
+```
+
+#### How many trials in condition shortEvents?
+
+```julia
+shortEvents = @linq evt[evt.condition.!="no response",:] |>
+    groupby([:subject])   |>
+    based_on(m=mean(quantile(:duration,0.2)))
+
+histogram(shortEvents.m,bins=20)
+```
+## Example Trial
+```julia
+ix = 40
+res_table,res_model = fit_subject(Array(d_all[ix]),e_all[ix])
+TR = 3.408
+T = size(Array(d_all[ix]),2)
+e = e_all[ix]
+e = e[e.condition.!="no response",:]
+limit = quantile(e.duration,0.2)
+#println("Lower Eventduration Cutoff: $limit")
+e[e.duration.<limit,:condition] .= "shortEvents"
+# choose middle layer ([3,:])
+
+
+plot(range(TR/2,T*TR,length=T),Array(d_all[ix])[3,:],linewidth=3,legend=nothing)
+
+#xaxis!([100,300])
+yticks!([-.6,0,.6])
+ylabel!("BOLD [std's]")
+xlabel!("time [s]")
+```
+#### Filtering
+The filter looks good and removes the low frequencies as intended.
+```julia
+responsetype = Highpass(1/64; fs=1/3.408)
+designmethod = FIRWindow(transitionwidth=0.11)
+f = digitalfilter(responsetype, designmethod)
+
+plot(range(TR/2,T*TR,length=T),Array(d_all[ix])[3,:],linewidth=3,legend=nothing)
+plot!(range(TR/2,T*TR,length=T),filtfilt(f,Array(d_all[ix])[3,:]),linewidth=3,legend=nothing)
+#xaxis!([100,500])
+yticks!([-.6,0,.6])
+ylabel!("BOLD [std's]")
+xlabel!("time [s]")
+```
+#### Modelled vs. Raw Data
+one can already see, that we have a very hard time modelling the V1 response
+```julia
+plot(range(TR/2,T*TR,length=T),filtfilt(f,Array(d_all[ix])[3,:]),linewidth=3,legend=nothing)
+plot!(range(TR/2,T*TR,length=T),Array(res_model[2].model.X[1:T,:])*res_model[2].model.beta,color="green",linewidth=3)
+#xaxis!([100,300])
+yticks!([-.6,0,.6])
+ylabel!("BOLD [std's]")
+xlabel!("time [s]")
+
+
+```
+#### Including Events
+The reason for the bad model fit could be visible here: We have extremely many more events than datapoints. Together with the slow BOLD response, this will be difficult
+```julia
+
+plot(range(TR/2,T*TR,length=T),filtfilt(f,Array(d_all[ix])[3,:]),linewidth=3,legend=nothing)
+#xaxis!([100,300])
+yticks!([-.6,0,.6])
+ylabel!("BOLD [std's]")
+xlabel!("time [s]")
+
+vline!(e.onset[e.condition.=="clockwise"],color="red")
+vline!(e.onset[e.condition.=="counter clockwise"],color="green")
+vline!(e.onset[e.condition.=="mixed"],color="purple")
+vline!(e.onset[e.condition.=="shortEvents"],color="blue")
+
+
+```
+
+# FIR Analysis
+First the grand average.
+```julia
+results_V1 = results_all[(results_all.fir .== 1).&(results_all.localizer .== "-c/+cc").&(results_all.roi.=="V1").&(results_all.voxelselect.==1).&(results_all.task.=="rivalry"),:]
+results_mean = by(results_V1,[:subject,:term,:colnames_basis,:roi],x -> DataFrame(m=mean(x.estimate)))
+results_GA = by(results_mean,[:term,:colnames_basis,:roi],x -> DataFrame(m=mean(x.m),sd = std(x.m)))
+
+@df results_GA plot(:colnames_basis,:m,group=(:term),legend=:outerright)
+```
+This looks quite noisy, and as expected the single subject estimates (10 as following) are not really useful.
+
+```julia
+plist = []
+for s in unique(results_mean.subject)[1:10]
+    p = @df filter(x->x.subject.==s,results_mean) plot(:colnames_basis,:m,group=(:term,:roi))
+    append!(plist,[p])
+end
+plot(plist...,layout=10,legend=nothing)
+
+```
+I also tried additionally modelling the duration. This only converges if I assume the same duration effect for all conditions (which is fine I think). The duration predictor makes sense, but doesn't really change the pattern we see here.
+# BOLD-Deconvolution
+First some data averaging / sorting
+```julia
+# BOLD plotting Data Averaging
+results_all.term = replace.(results_all.term,"condition: "=>"")
+results_mean = by(results_all[(results_all.fir.==0).&(results_all.layer.>1) .& (results_all.layer.<5),:],[:task,:subject,:term,:roi,:localizer],x -> DataFrame(m=mean(x.estimate)))
+results_mean2 = by(results_mean,[:task,:subject,:roi,:localizer],x -> DataFrame(m_centered=x.m .-mean(x.m[x.term.!="shortEvents"])))
+results_mean.m_centered = results_mean2.m_centered
+results_GA = by(results_mean,[:task,:term,:roi,:localizer],x -> DataFrame(m=mean(x.m),sd = std(x.m),sd_withinTerm=std(x.m_centered)));
+
+results_GA.se_withinTerm = results_GA.sd_withinTerm./sqrt(24)
+results_diff = unstack(results_all[(results_all.fir.==0).&(results_all.voxelselect.==1),:],[:task,:subject,:roi,:layer,:run,:term],:localizer,:estimate)
+results_diff.diff = results_diff[:,Symbol("+c/-cc")] - results_diff[:,Symbol("-c/+cc")]
+
+results_layer = by(results_diff[((results_diff.term.=="clockwise") .| (results_diff.term.=="counter clockwise")).&
+                                (results_diff.layer.>1) .&
+                                (results_diff.layer.<5),:],[:layer,:task,:subject,:term,:roi],x -> DataFrame(m=mean(x.diff)))
+tmp = by(results_layer,[:layer,:task,:subject,:roi],x -> DataFrame(m_centered=x.m .-mean(x.m[x.term.!="shortEvents"])))
+results_layer.m_centered = tmp.m_centered
+results_layerGA = by(results_layer,[:layer,:task,:term,:roi],x -> DataFrame(m=mean(x.m),sd = std(x.m),sd_withinTerm=std(x.m_centered)));
+results_layerGA.se_withinTerm = results_layerGA.sd_withinTerm./sqrt(24);
+```
+
+## Localizer
+**!CIRCULAR ANALYSIS !** Each dot is a subject, no statistic needed
+As expected, the two conditions exhibit inverse patterns for the two orientation localizers.
+
+```julia
+tmp = filter(x->x.task .=="localizer",results_GA)
+#tmp = filter(x->x.localizer.=="+1clock/-1counter",tmp)
+tmp = filter(x->x.roi.=="V1",tmp)
+#@df filter(x->x.task .=="localizer",  results_GA) scatter(:term,:m,yerror=:sd_withinTerm,group=(:localizer,:roi),layout=(3,1))
+
+@df tmp scatter(:term,:m,group=(:localizer,:roi),yerror=:se_withinTerm,layout=(length(unique(tmp.roi)),1),legend=:outerright)
+#plot!(ylims=(-0.5, 0.5))
+yticks!([-.5,0,.5,1])
+ylabel!("BOLD [std's]")
+
+
+```
+These are the data for V1. spatial-filter ALL shows general activity, independent of the localizer contrast c/cc
+
+## Rivalry Data
+```julia
+tmp = filter(x->x.task .=="rivalry",  results_GA)
+tmp = filter(x->x.roi.=="V1",tmp)
+
+@df tmp scatter(:term,:m,yerror=:se_withinTerm,group=(:localizer,:roi),layout=(length(unique(tmp.roi)),1),legend=nothing)
+plot!(ylims=(-0.5, 0.5),xrotation=45)
+yticks!([-.5,0,-0.1,0.1,.5])
+ylabel!("BOLD [std's]")
+```
+We cannot recover much activation.
+
+
+```julia;
+
+# BOLD plotting by layer
+tmp = filter(x->x.task .=="rivalry",  results_layerGA)
+tmp = filter(x->x.roi.=="V1",tmp)
+@df tmp plot(:layer, :m,yerror=:se_withinTerm,group=(:term))
+plot!(ylims=(-0.1, 0.1))
+yticks!([-.1,0,.1])
+ylabel!("BOLD difference [std's]")
+xticks!([2, 3, 4],["Deep","Middle","superficial"])
+```
+Within subject errorbars. These are the differences in laminar activity between *clockwise* - *counter-clockwise*.
+That is, the resuling two curves should have opposite patterns. For the clockwise-condition we see the to-be-expected increase towards superficial layers, but not so in the counter-clockwise condition
+
+```julia;eval=false;echo=false
+### Mixed Model
+#Just for the future, this saves me to do lots of individual t-tests. Everything is orthogonal at this stage anyway
+using MixedModels
+categorical!(results_all,:subject)
+categorical!(results_all,:layer)
+results_mm = results_all[(results_all.task.=="rivalry").&(results_all.roi.=="roi-V1"),:]
+mm = fit(LinearMixedModel,@formula(estimate~layer*term*localizer+(1|subject)),results_mm)
+```
+
+
+
+
+
+
+
+### Simulation
+
+```julia;eval=false;
+ix = [join(x[5:8]) for x in split.(dat_files,"_")] .== "desc-preproc-zscore-localizer -1clockwise+1counter clockwiseThreshroi-V1"
+results_model
+ix = [(!k[5]) .&occursin("task-rivalry",k[3]).&occursin("desc-preproc-zscore-tweight-localizer ALLThresh_roi-V1_timecourse_data",k[3]) for k in results_model]
+sim_model = results_model[(findall(ix)[range(1,sum(ix),step=3)]),:]
+using Distributions
+nanmean(x) = mean(filter(!isnan,x));
+
+
+function run_simulation(β,θ,ϵ,)
+    mv = MvNormal(β,θ)
+    b_hat_list = fill(NaN,(50,4))
+    for simID in 1:50
+        if simID==40
+            # This subject has no clockwise data (why?)
+            continue
+        end
+        s = sim_model[simID][1]
+        f = sim_model[simID][2]
+
+
+        b = rand(mv,1)
+        #println(b)
+        X_length = size(s.model.X,1)
+        if ϵ>0
+        d = Array(d_all[f][2,:])
+        d = vcat(d, zeros(X_length - size(d,1)))
+        e_sd =  std(d.- s.model.X*s.model.beta)
+        else
+            e_sd = 0
+        end
+        yhat =  s.model.X * b
+        y =yhat + (rand(X_length).-0.5)*e_sd*ϵ
+        b_hat = pinv(Matrix(s.model.X))*y
+        b_hat = s.model.X\y
+
+        b_hat_list[simID,:] = b_hat
+    end
+    return(b_hat_list)
+end
+```
+
+#### Parameter-Recovery
+I simulated data based on the "true" designmatrices with noise estimated from the data.
+I then refit the model and see how well it works out
+This is a clear **upper-limit** to what we can do, as  that the simulation-model
+and analysis model are identical.
+What I did not model is other noise e.g.
+- random reaction time jitter (maybe negligable?),
+- slightly different BOLD curve
+- correlated noise
+- all betas have same variance
+
+
+```julia
+using Lazy
+using LinearAlgebra
+
+θ = 1*[1 0.5 0.5 0; 0.5 1 0.5 0; 0.5 0.5 1 0; 0 0 0 1]
+β = [0.6,0.1,-0.5,2]
+ϵ = 1 # noise scaling constant
+
+x = repeatedly(100,()->run_simulation(β,θ,ϵ))
+x = cat(x...,dims=3) # remove lists
+x_avg = dropdims(mapslices(nanmean,x,dims=3),dims=3) # average over repetitions
+plot(x_avg,label=["c" "cc" "mixed" "oneoff"])
+
+```
+Plot shows 50 runs (25s x 2).
+
+#### Efficieny
+I abandonded this. I calculated efficiency (basically 1/normalizedSE). But I did
+not model comparison designs (like a design with longer durations). Floris made a
+good comment on this: We cannot change the efficiency of past designs. One point
+in favour of efficieny comparison is to see, whether the analysis of the data we have
+could be pointless, because efficiency is so small.
+
+```julia
+#-- efficiency
+C = [1 1 0 0;1 0 0 0;0 1 0 0;1 -1 0 0; 0 0 1 0]
+eff = []
+for k = 1:50
+    if k == 40
+        continue
+    end
+
+    append!(eff,[1/diag(C * inv(Matrix(sim_model[k][1].model.X)'Matrix(sim_model[k][1].model.X))*C')])
+end
+
+eff_avg = dropdims(1 ./ mapslices(nanmean,vcat(eff...),dims=1),dims=1)
+scatter(["c+cc" "c" "cc" "c-cc" "mixed"],eff_avg',legend=nothing)
+```
+
+
+
+
+
+
+
+
+```julia;echo=false;eval=false
+using Weave
+using Dates
+weave("code_julia/analysis.jmd",out_path="doc/"*string(Dates.today())*"_analysis.html")
+```
