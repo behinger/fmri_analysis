@@ -1,6 +1,6 @@
 
 cfg.datadir = fullfile('/project/3018029.10/sustained/','data','pilot','bids');
-SID = 'sub-05'
+SID = 'sub-11'
 niftis = [dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','func','*task-sus*run-*Realign_bold.nii'))];
 mask_varea = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-varea_space-FUNCCROPPED_label.nii'));
 mask_eccen = dir(fullfile(cfg.datadir,'derivates','preprocessing',SID,'ses-01','label','*desc-eccen_space-FUNCCROPPED_label.nii'));
@@ -14,7 +14,8 @@ nifti_eccen= nifti(fullfile(mask_eccen.folder,mask_eccen.name));
 ix_v1= nifti_varea.dat(:) == 1; % V1
 ix_ec10 = nifti_eccen.dat(:) <10; % V1
 
-voxel_select_ix = find(ix_v1 & ix_ec10);
+% voxel_select_ix = find(ix_v1 & ix_ec10);
+voxel_select_ix = 1:length(ix_v1);
 
 
 %% Load Event Files
@@ -38,6 +39,9 @@ if SID == "sub-05"
     events.run(ix)  = events.run(ix) + 1;
     
 end
+if SID == 'sub-11'
+    events.condition = strrep(events.condition,'_','-')
+end
 stimOnsetIX = find(events.message == "stimOnset");
 onsetIX = diff(events{stimOnsetIX,'block'}) == 1;
 onsetIX = [1; stimOnsetIX(find([0; onsetIX]))];
@@ -45,17 +49,19 @@ events.trial = nan(size(events,1),1);
 events.trial(onsetIX) = 1; % to mark the onset
 
 %% Voxel selection
-
-calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',0)
+try
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,events,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',1)
 % generate default contrasts (main effects)
-% calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
+calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
 
 tmpT = nifti(fullfile(cfg.datadir,'derivates','spm',SID,'ses-01','GLM','run-all','spmT_0001.nii'));
 
 [~,I] = sort(tmpT.dat(voxel_select_ix));
 ixTop200 = voxel_select_ix(I(end-200:end));
 
-
+catch
+    ixTop200 = voxel_select_ix;
+end
 
 
 %% ZScore, Highpassfilter & mean ROI
@@ -85,7 +91,13 @@ end
 %%  CUT ERP
 
 
-events_onset = events(events.trial == 1,:);
+
+if SID == 'sub-11'
+    events_onset = events;
+    
+else
+    events_onset = events(events.trial == 1,:);
+end
 allDat = [];
 for block = 1:height(events_onset)
     tmp = events_onset(block,:);
@@ -132,11 +144,11 @@ g.draw();
 g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-conditionSingletrial_plot.pdf',SID));
 %% Condition / stimulus
 figure
-g = gramm('x',ix_time,'y',plotData,'color',allDat.condition)
+g = gramm('x',ix_time,'y',plotData,'color',cellfun(@(x)isempty(x),strfind(allDat.condition,'continuous')))
 g.stat_summary('type','bootci','geom','errorbar','setylim',1,'dodge',0.5);
 g.stat_summary('type','ci','geom','point','setylim',1,'dodge',0);
 g.stat_summary('type','ci','geom','line','setylim',1,'dodge',0);
-g.facet_wrap(allDat.stimulus);
+g.facet_wrap(allDat.duration);
 % g.axe_property('Ylim',[-0.38 1.6])
 g.draw();
 g.export('export_path','./plots/','file_type','pdf','file_name',sprintf('%s_ses-01_desc-conditionStimulustype_plot.pdf',SID));

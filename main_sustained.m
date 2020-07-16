@@ -219,15 +219,22 @@ if cfg.subjectlist{1} == "sub-05"
     % fix inconsistency during recording
     ix = events.subject == 5;
     events.run(ix)  = events.run(ix) + 1;
+    
 end
 
+if SID == 'sub-11'
+    events.condition = strrep(events.condition,'_','-')
+    tmp = cellfun(@(x)strsplit(x,'-'),events.condition,'UniformOutput',0); % flashed-6s to {flashed,6s}
+    tmp = [tmp{:}]; 
+    tmp = tmp(2:2:end); % {'6s','8s','4s','6s'}
+    events.duration = cellfun(@(x)str2num(x(1)),tmp)';
+end
 % take only block onsets :-)
 events = events(events.blockOnset == 1,:);
 
     
 %For Whole-Brain SPM analysis
-calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,events,'task','sustained','TR',1.5,'conditions',{'
-    ','condition'},'recalculate',1)
+calc_spm2ndLevel(cfg.bidsdir,cfg.subjectlist,events,'task','sustained','TR',1.5,'conditions',{'stimulus','condition'},'recalculate',1)
 % generate default contrasts (main effects)
 calc_spmContrast(cfg.bidsdir,cfg.subjectlist)
 
